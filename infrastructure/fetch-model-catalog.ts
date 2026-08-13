@@ -40,8 +40,9 @@ export async function fetchFreeModelCatalog(): Promise<CatalogModel[] | null> {
       return fallbackCatalog;
     }
 
+    // Filter out rate-limited 31B model and prioritize rock-solid free models
     const freeModels: CatalogModel[] = json.data
-      .filter((m) => m.id.endsWith(":free"))
+      .filter((m) => m.id.endsWith(":free") && !m.id.includes("31b"))
       .map((m) => ({
         id: m.id,
         name: formatModelName(m.id, m.name),
@@ -50,7 +51,22 @@ export async function fetchFreeModelCatalog(): Promise<CatalogModel[] | null> {
         pricingCompletion: m.pricing?.completion ?? "0",
         isFree: true,
       }))
-      .sort((a, b) => b.contextLength - a.contextLength);
+      .sort((a, b) => {
+        // Prioritize top responsive models first
+        const priorityOrder = [
+          "openai/gpt-oss-20b:free",
+          "nvidia/nemotron-3.5-lightning:free",
+          "google/gemma-4-26b-a4b-it:free",
+          "nvidia/nemotron-3-nano-30b-a3b:free",
+          "cohere/north-mini-code:free",
+        ];
+        const aIndex = priorityOrder.indexOf(a.id);
+        const bIndex = priorityOrder.indexOf(b.id);
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        return b.contextLength - a.contextLength;
+      });
 
     return freeModels.length > 0 ? freeModels : fallbackCatalog;
   } catch (error) {
@@ -79,14 +95,6 @@ function formatModelName(id: string, rawName: string): string {
 }
 
 export const fallbackCatalog: CatalogModel[] = [
-  {
-    id: "google/gemma-4-31b-it:free",
-    name: "Google: Gemma 4 31B IT",
-    contextLength: 131072,
-    pricingPrompt: "0",
-    pricingCompletion: "0",
-    isFree: true,
-  },
   {
     id: "openai/gpt-oss-20b:free",
     name: "OpenAI: GPT OSS 20B",
