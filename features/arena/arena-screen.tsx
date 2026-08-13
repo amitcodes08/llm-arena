@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import { CatalogModel } from "@/infrastructure/fetch-model-catalog";
 import { TurnState, ResponseState } from "./turn-state";
 import { ArenaGrid, ModelCardData } from "@/app/arena/components/arena-grid";
@@ -8,6 +9,8 @@ import { PromptInput } from "@/app/arena/components/prompt-input";
 import { TopBar } from "@/app/arena/components/top-bar";
 import { startTurnAction } from "@/features/chat/start-turn-action";
 import { useThreadHistory } from "@/infrastructure/thread-history-store";
+import { Swords, Eye } from "lucide-react";
+import { Show, SignInButton } from "@clerk/nextjs";
 
 interface ArenaScreenProps {
   readonly catalog: CatalogModel[] | null;
@@ -104,6 +107,39 @@ export function ArenaScreen({
           isWinner: false,
         };
       });
+
+  // Calculate live model win records for the current thread
+  const modelWinMap = new Map<
+    string,
+    { shortName: string; wins: number; total: number }
+  >();
+  turns.forEach((turn) => {
+    const hasWinner = turn.responses.some((resp) => resp.won);
+    if (!hasWinner) return;
+
+    turn.responses.forEach((resp) => {
+      const catModel = catalog?.find((m) => m.id === resp.modelId);
+      const shortName =
+        catModel?.name?.split(" ")[0] ||
+        resp.modelName?.split(" ")[0] ||
+        resp.modelId.split("/").pop()?.split("-")[0] ||
+        "Model";
+
+      if (!modelWinMap.has(resp.modelId)) {
+        modelWinMap.set(resp.modelId, { shortName, wins: 0, total: 0 });
+      }
+      const entry = modelWinMap.get(resp.modelId)!;
+      entry.total += 1;
+      if (resp.won) entry.wins += 1;
+    });
+  });
+
+  const winPills = Array.from(modelWinMap.entries()).map(([id, stat]) => ({
+    id,
+    shortName: stat.shortName,
+    wins: stat.wins,
+    total: stat.total,
+  }));
 
   const streamSingleModel = async (
     turnId: string,
@@ -250,7 +286,7 @@ export function ArenaScreen({
   };
 
   const handleVote = async (modelId: string) => {
-    if (!latestTurn) return;
+    if (!isOwner || !latestTurn) return;
     const resp = latestTurn.responses.find((r) => r.modelId === modelId);
     if (!resp) return;
 
@@ -279,6 +315,8 @@ export function ArenaScreen({
         threadTitle={
           activeThreadId ? `Thread ${activeThreadId.slice(0, 6)}` : "New Arena"
         }
+        threadId={activeThreadId}
+        models={winPills.length > 0 ? winPills : undefined}
       />
       <ArenaGrid
         prompt={
@@ -286,15 +324,45 @@ export function ArenaScreen({
           "Send a prompt below to evaluate parallel model streams in real time."
         }
         models={displayModels}
-        onVote={handleVote}
+        onVote={isOwner ? handleVote : undefined}
       />
-      {isOwner && (
+
+      {isOwner ? (
         <PromptInput
           catalog={catalog}
           selectedModelIds={selectedModels}
           onSelectionChange={(ids) => setSelectedModels(ids)}
           onSend={handleSendPrompt}
         />
+      ) : (
+        /* Public Guest Read-Only Banner */
+        <div className="border-border bg-card/90 border-t p-4">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
+            <div className="text-muted-foreground flex items-center gap-2.5 text-xs">
+              <Eye className="text-primary h-4 w-4 shrink-0" />
+              <span>
+                Viewing public battle thread. Start your own session to evaluate
+                models with your own prompts.
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Show when="signed-out">
+                <SignInButton mode="modal">
+                  <button className="surface hover:bg-muted px-3 py-1.5 text-xs font-semibold transition-colors">
+                    Sign In
+                  </button>
+                </SignInButton>
+              </Show>
+              <Link
+                href="/"
+                className="btn-accent flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold"
+              >
+                <Swords className="h-3.5 w-3.5" />
+                <span>Start New Battle</span>
+              </Link>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

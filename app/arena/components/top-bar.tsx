@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Show, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
+import { Share2, Check } from "lucide-react";
 
 interface TopBarProps {
   threadTitle?: string;
+  threadId?: string;
   models?: Array<{
     id: string;
     shortName: string;
@@ -14,12 +17,23 @@ interface TopBarProps {
 
 export function TopBar({
   threadTitle = "Thread 1",
+  threadId,
   models = [
-    { id: "1", shortName: "Llama 3.1 8B", wins: 0, total: 2 },
-    { id: "2", shortName: "Qwen 2.5 72B", wins: 0, total: 2 },
-    { id: "3", shortName: "Gemma 2 9B", wins: 1, total: 2 },
+    { id: "1", shortName: "Gemma 4", wins: 0, total: 2 },
+    { id: "2", shortName: "GPT-OSS", wins: 0, total: 2 },
+    { id: "3", shortName: "Nemotron", wins: 1, total: 2 },
   ],
 }: Readonly<TopBarProps>) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    if (typeof window !== "undefined") {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <header className="border-border bg-card/80 sticky top-0 z-10 flex h-14 items-center justify-between border-b px-6 backdrop-blur-sm">
       {/* Breadcrumb */}
@@ -31,8 +45,9 @@ export function TopBar({
         </span>
       </div>
 
-      {/* Model Win-Rate Pills & Auth Actions */}
+      {/* Model Win-Rate Pills & Actions */}
       <div className="flex items-center gap-3">
+        {/* Model win pills */}
         <div className="hidden items-center gap-2 sm:flex">
           {models.map((model) => (
             <div
@@ -50,6 +65,28 @@ export function TopBar({
           ))}
         </div>
 
+        {/* Share Button (when viewing a thread) */}
+        {threadId && (
+          <button
+            onClick={handleShare}
+            className="surface hover:bg-muted text-foreground flex items-center gap-1.5 px-3 py-1 text-xs font-semibold transition-colors"
+            title="Copy shareable link"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                <span className="text-emerald-500">Copied!</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="h-3.5 w-3.5" />
+                <span>Share</span>
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Auth Buttons */}
         <div className="border-border flex items-center gap-2 border-l pl-2">
           <Show when="signed-in">
             <UserButton />

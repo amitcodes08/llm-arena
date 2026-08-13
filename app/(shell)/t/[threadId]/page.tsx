@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
+import { Metadata } from "next";
 
 import type { ResponseState, TurnState } from "@/features/arena/turn-state";
 import { ArenaScreen } from "@/features/arena/arena-screen";
@@ -28,6 +29,34 @@ interface DBTurn {
   prompt: string;
   votes: DBVote[];
   responses: DBResponse[];
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  readonly params: Promise<{ threadId: string }>;
+}): Promise<Metadata> {
+  const { threadId } = await params;
+  const thread = await database().thread.findUnique({
+    where: { id: threadId },
+    select: {
+      turns: {
+        take: 1,
+        orderBy: { createdAt: "asc" },
+        select: { prompt: true },
+      },
+    },
+  });
+
+  const promptTitle = thread?.turns[0]?.prompt
+    ? `"${thread.turns[0].prompt.slice(0, 50)}..."`
+    : "Model Battle";
+
+  return {
+    title: `${promptTitle} | LLM Arena`,
+    description:
+      "Compare LLM model responses side by side in real time with direct benchmark metrics.",
+  };
 }
 
 export default async function ThreadPage({
