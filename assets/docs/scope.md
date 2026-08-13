@@ -19,8 +19,8 @@ There are rough hand-drawn sketches for the arena screen, the leaderboard, and t
 | #   | Feature                                     | Phase      | Status      |
 | --- | ------------------------------------------- | ---------- | ----------- |
 | 1   | Connecting to a model                       | Foundation | done        |
-| 2   | Coding standards & tooling                  | Foundation | not started |
-| 3   | Data model                                  | Foundation | not started |
+| 2   | Coding standards & tooling                  | Foundation | done        |
+| 3   | Data model                                  | Foundation | done        |
 | 4   | Design & look                               | Foundation | not started |
 | 5   | Model picker                                | Slice 1    | not started |
 | 6   | Send a prompt, parallel streams, and voting | Slice 1    | not started |
@@ -45,15 +45,15 @@ PostHog should be wired in from the start too, session replay and heatmaps turne
 
 Write down the real conventions for this project once it actually exists, then install linting, formatting, and a pre-commit hook that actually enforces them.
 
-- [ ] Decide the approach
-- [ ] Install lint, format, and whatever else is needed, and write it up in a coding-standards doc
+- [x] Decide the approach — Use ESLint for linting, Prettier with `prettier-plugin-tailwindcss` for class sorting, Husky + `lint-staged` for pre-commit typecheck, lint, and formatting, and document core conventions in `docs/coding-standards.md`.
+- [x] Install & document — Installed `prettier`, `eslint-config-prettier`, `prettier-plugin-tailwindcss`, `husky`, `lint-staged`. Configured `.prettierrc`, `.prettierignore`, `.lintstagedrc.json`, `.husky/pre-commit`. Written `docs/coding-standards.md`.
 
 ### 3. Data model
 
 The core things every feature depends on: users tied to Clerk, threads, each model's own messages inside a thread, and votes. A vote should only ever be possible on a turn where two or more models actually answered.
 
-- [ ] Decide the approach
-- [ ] Build it
+- [x] Decide the approach — Define User (Clerk ID), Thread, Turn (prompt round), ModelResponse (content + latency/token metrics + status), and Vote (tied to turn & winner response with unique constraint `(userId, turnId)`).
+- [x] Build it — Authored `prisma/schema.prisma`, ran `npx prisma generate` (Prisma 7 client generated to `app/generated/prisma`), and synchronized database via `npx prisma db push`.
 
 ### 4. Design & look
 

@@ -1,0 +1,18 @@
+# Build outputs & dependencies
+.next/
+out/
+build/
+node_modules/
+app/generated/
+
+# Skills and agent directories
+.agents/
+.claude/
+.windsurf/
+
+# Lock files
+package-lock.json
+skills-lock.json
+
+# Environment files
+.env*

@@ -1,7 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// LLMArena Prisma Schema
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +7,101 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+/// Represents a user synced from Clerk authentication.
+model User {
+  id        String   @id // Clerk userId (e.g. user_2...)
+  email     String?  @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  threads Thread[]
+  votes   Vote[]
+
+  @@map("users")
+}
+
+/// A conversation thread initiated by a user.
+model Thread {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  turns Turn[]
+  votes Vote[]
+
+  @@index([userId])
+  @@map("threads")
+}
+
+/// A single prompt-and-responses turn within a thread.
+model Turn {
+  id         String   @id @default(cuid())
+  threadId   String
+  prompt     String   @db.Text
+  turnNumber Int
+  createdAt  DateTime @default(now())
+
+  thread    Thread          @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  responses ModelResponse[]
+  votes     Vote[]
+
+  @@unique([threadId, turnNumber])
+  @@index([threadId])
+  @@map("turns")
+}
+
+enum ResponseStatus {
+  PENDING
+  STREAMING
+  COMPLETED
+  FAILED
+}
+
+/// An individual model's response for a specific turn.
+model ModelResponse {
+  id                 String         @id @default(cuid())
+  turnId             String
+  modelId            String // e.g. "meta-llama/llama-3.1-8b-instruct:free"
+  content            String         @db.Text
+  timeToFirstTokenMs Int?
+  tokensPerSecond    Float?
+  totalTokens        Int?
+  status             ResponseStatus @default(PENDING)
+  errorMessage       String?
+  createdAt          DateTime       @default(now())
+
+  turn Turn   @relation(fields: [turnId], references: [id], onDelete: Cascade)
+  wins Vote[]
+
+  @@index([turnId])
+  @@index([modelId])
+  @@map("model_responses")
+}
+
+/// A user vote for the winning model response on a turn.
+model Vote {
+  id                    String   @id @default(cuid())
+  userId                String
+  threadId              String
+  turnId                String
+  winnerModelResponseId String
+  createdAt             DateTime @default(now())
+
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread                Thread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  turn                  Turn          @relation(fields: [turnId], references: [id], onDelete: Cascade)
+  winnerModelResponse   ModelResponse @relation(fields: [winnerModelResponseId], references: [id], onDelete: Cascade)
+
+  // Enforces that a user can vote at most once per turn
+  @@unique([userId, turnId])
+  @@index([userId])
+  @@index([threadId])
+  @@index([turnId])
+  @@map("votes")
 }
