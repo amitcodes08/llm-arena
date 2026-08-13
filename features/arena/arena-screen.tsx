@@ -114,6 +114,9 @@ export function ArenaScreen({
     { shortName: string; wins: number; total: number }
   >();
   turns.forEach((turn) => {
+    const hasWinner = turn.responses.some((resp) => resp.won);
+    if (!hasWinner) return;
+
     turn.responses.forEach((resp) => {
       const catModel = catalog?.find((m) => m.id === resp.modelId);
       const shortName =
