@@ -8,6 +8,7 @@ import { ArenaGrid, ModelCardData } from "@/app/arena/components/arena-grid";
 import { PromptInput } from "@/app/arena/components/prompt-input";
 import { TopBar } from "@/app/arena/components/top-bar";
 import { startTurnAction } from "@/features/chat/start-turn-action";
+import { saveModelResponseAction } from "@/features/chat/save-model-response-action";
 import { useThreadHistory } from "@/infrastructure/thread-history-store";
 import { Swords, Eye } from "lucide-react";
 import { Show, SignInButton } from "@clerk/nextjs";
@@ -219,6 +220,16 @@ export function ArenaScreen({
           totalTokens: finalTokens,
           costUsd: 0,
         },
+      });
+
+      // Explicitly persist response to database
+      await saveModelResponseAction({
+        turnId,
+        modelId,
+        content: streamedText,
+        timeToFirstTokenMs: finalTtft,
+        tokensPerSecond: finalTokPerSec,
+        totalTokens: finalTokens,
       });
     } catch (error) {
       console.error(`[arena] stream error for ${modelId}:`, error);
