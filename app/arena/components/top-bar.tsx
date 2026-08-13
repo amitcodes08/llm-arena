@@ -1,5 +1,7 @@
 "use client";
 
+import { Show, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
+
 interface TopBarProps {
   threadTitle?: string;
   models?: Array<{
@@ -29,22 +31,44 @@ export function TopBar({
         </span>
       </div>
 
-      {/* Model Win-Rate Pills */}
-      <div className="flex items-center gap-2">
-        {models.map((model) => (
-          <div
-            key={model.id}
-            className="border-border bg-muted/60 hover:border-input flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs transition-colors"
-            title={`${model.shortName}: ${model.wins}/${model.total} wins in this thread`}
-          >
-            <span className="text-foreground font-bold">
-              {model.shortName[0]}
-            </span>
-            <span className="text-muted-foreground font-medium">
-              {model.wins}/{model.total}
-            </span>
-          </div>
-        ))}
+      {/* Model Win-Rate Pills & Auth Actions */}
+      <div className="flex items-center gap-3">
+        <div className="hidden items-center gap-2 sm:flex">
+          {models.map((model) => (
+            <div
+              key={model.id}
+              className="border-border bg-muted/60 hover:border-input flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs transition-colors"
+              title={`${model.shortName}: ${model.wins}/${model.total} wins in this thread`}
+            >
+              <span className="text-foreground font-bold">
+                {model.shortName[0]}
+              </span>
+              <span className="text-muted-foreground font-medium">
+                {model.wins}/{model.total}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-border flex items-center gap-2 border-l pl-2">
+          <Show when="signed-in">
+            <UserButton />
+          </Show>
+          <Show when="signed-out">
+            <div className="flex items-center gap-2">
+              <SignInButton mode="modal">
+                <button className="text-foreground hover:text-primary text-xs font-medium transition-colors">
+                  Sign In
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="btn-accent px-3 py-1 text-xs font-semibold">
+                  Sign Up
+                </button>
+              </SignUpButton>
+            </div>
+          </Show>
+        </div>
       </div>
     </header>
   );
