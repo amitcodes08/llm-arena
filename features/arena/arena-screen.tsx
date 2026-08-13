@@ -257,7 +257,7 @@ export function ArenaScreen({
     }
 
     const newThreadId = res.threadId;
-    if (!activeThreadId) {
+    if (activeThreadId !== newThreadId) {
       setActiveThreadId(newThreadId);
       addThread({ id: newThreadId, title: promptText.slice(0, 40) });
       window.history.pushState({}, "", `/t/${newThreadId}`);
