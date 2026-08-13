@@ -12,6 +12,7 @@ import {
 import { PromptInput } from "@/app/arena/components/prompt-input";
 import { TopBar } from "@/app/arena/components/top-bar";
 import { startTurnAction } from "@/features/chat/start-turn-action";
+import { saveModelResponseAction } from "@/features/chat/save-model-response-action";
 import { useThreadHistory } from "@/infrastructure/thread-history-store";
 import { Swords, Eye } from "lucide-react";
 import { Show, SignInButton } from "@clerk/nextjs";
@@ -238,16 +239,37 @@ export function ArenaScreen({
       const finalTokPerSec =
         finalSec > 0 ? Number((finalTokens / finalSec).toFixed(1)) : 0;
 
+      // Verify database persistence and retrieve authoritative server/provider metrics
+      const persistRes = await saveModelResponseAction({
+        turnId,
+        modelId,
+        content: streamedText,
+        timeToFirstTokenMs: finalTtft,
+        tokensPerSecond: finalTokPerSec,
+        totalTokens: finalTokens,
+      });
+
+      if (!persistRes.success) {
+        throw new Error(persistRes.error || "Failed to persist response");
+      }
+
+      const authoritativeMetrics = persistRes.persistedMetrics;
+
       updateResponseState(turnId, modelId, {
         text: streamedText,
         status: "COMPLETE",
         metrics: {
           modelId,
-          timeToFirstTokenMs: finalTtft,
-          tokensPerSecond: finalTokPerSec,
+          timeToFirstTokenMs:
+            authoritativeMetrics?.timeToFirstTokenMs ?? finalTtft,
+          tokensPerSecond:
+            authoritativeMetrics?.tokensPerSecond !== null &&
+            authoritativeMetrics?.tokensPerSecond !== undefined
+              ? Number(authoritativeMetrics.tokensPerSecond)
+              : finalTokPerSec,
           inputTokens: null,
-          outputTokens: finalTokens,
-          totalTokens: finalTokens,
+          outputTokens: authoritativeMetrics?.totalTokens ?? finalTokens,
+          totalTokens: authoritativeMetrics?.totalTokens ?? finalTokens,
           costUsd: 0,
         },
       });
