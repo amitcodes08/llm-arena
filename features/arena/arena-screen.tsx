@@ -238,28 +238,39 @@ export function ArenaScreen({
       const finalTokPerSec =
         finalSec > 0 ? Number((finalTokens / finalSec).toFixed(1)) : 0;
 
-      updateResponseState(turnId, modelId, {
-        text: streamedText,
-        status: "COMPLETE",
-        metrics: {
-          modelId,
-          timeToFirstTokenMs: finalTtft,
-          tokensPerSecond: finalTokPerSec,
-          inputTokens: null,
-          outputTokens: finalTokens,
-          totalTokens: finalTokens,
-          costUsd: 0,
-        },
-      });
-
-      // Explicitly persist response to database
-      await saveModelResponseAction({
+      // Verify database persistence and retrieve authoritative server/provider metrics
+      const persistRes = await saveModelResponseAction({
         turnId,
         modelId,
         content: streamedText,
         timeToFirstTokenMs: finalTtft,
         tokensPerSecond: finalTokPerSec,
         totalTokens: finalTokens,
+      });
+
+      if (!persistRes.success) {
+        throw new Error(persistRes.error || "Failed to persist response");
+      }
+
+      const authoritativeMetrics = persistRes.persistedMetrics;
+
+      updateResponseState(turnId, modelId, {
+        text: streamedText,
+        status: "COMPLETE",
+        metrics: {
+          modelId,
+          timeToFirstTokenMs:
+            authoritativeMetrics?.timeToFirstTokenMs ?? finalTtft,
+          tokensPerSecond:
+            authoritativeMetrics?.tokensPerSecond !== null &&
+            authoritativeMetrics?.tokensPerSecond !== undefined
+              ? Number(authoritativeMetrics.tokensPerSecond)
+              : finalTokPerSec,
+          inputTokens: null,
+          outputTokens: authoritativeMetrics?.totalTokens ?? finalTokens,
+          totalTokens: authoritativeMetrics?.totalTokens ?? finalTokens,
+          costUsd: 0,
+        },
       });
     } catch (error) {
       console.error(`[arena] stream error for ${modelId}:`, error);

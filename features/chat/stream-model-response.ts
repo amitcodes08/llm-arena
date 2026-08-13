@@ -1,5 +1,6 @@
 import { streamText } from "ai";
 import { openrouter } from "@/app/arena/lib/openrouter";
+import { posthogServer } from "@/app/arena/lib/posthog-server";
 import { database } from "@/infrastructure/database";
 import { ChatRequest } from "./chat-request";
 
@@ -69,6 +70,22 @@ export function streamModelResponse(
             },
           });
         }
+
+        if (posthogServer) {
+          posthogServer.capture({
+            distinctId: _metadata.clerkId,
+            event: "stream_completed",
+            properties: {
+              turnId: data.turnId,
+              modelId: data.modelId,
+              timeToFirstTokenMs: ttftMs,
+              tokensPerSecond: tokensPerSec,
+              inputTokens,
+              outputTokens,
+              totalTokens,
+            },
+          });
+        }
       } catch (err) {
         console.error(
           "[stream-model-response] failed to update response row",
@@ -94,6 +111,18 @@ export function streamModelResponse(
             data: {
               status: "FAILED",
               errorMessage: "Model response failed.",
+            },
+          });
+        }
+
+        if (posthogServer) {
+          posthogServer.capture({
+            distinctId: _metadata.clerkId,
+            event: "stream_failed",
+            properties: {
+              turnId: data.turnId,
+              modelId: data.modelId,
+              error: error instanceof Error ? error.message : String(error),
             },
           });
         }
