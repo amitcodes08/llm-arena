@@ -88,8 +88,8 @@ Every prompt sent, every answer finishing, and every vote cast should be tracked
 
 The frame everything else sits inside: a top bar and sidebar that stay in place while the page scrolls, the thread's name, and each model's win record shown right there (shrinking down to a small dot and number if it gets crowded). The sidebar lists a signed-in user's own past threads so the tool actually feels usable across visits, not just in one sitting.
 
-- [ ] Decide the approach
-- [ ] Build it
+- [x] Decide the approach — Categorize threads into date groups (Today, Yesterday, Previous 7 days, Older), optimistic addition on new prompt, active thread indicator, signed-out fallback prompt, and live top bar win record pills.
+- [x] Build it — Built `listThreadHistory` with date grouping, updated `AppShell` with active thread indicator and signed-out prompt, wired optimistic additions in `ThreadHistoryContext`, and integrated dynamic win pills in `TopBar`.
 
 ## Slice 3: Public visibility & sharing
 

@@ -105,6 +105,36 @@ export function ArenaScreen({
         };
       });
 
+  // Calculate live model win records for the current thread
+  const modelWinMap = new Map<
+    string,
+    { shortName: string; wins: number; total: number }
+  >();
+  turns.forEach((turn) => {
+    turn.responses.forEach((resp) => {
+      const catModel = catalog?.find((m) => m.id === resp.modelId);
+      const shortName =
+        catModel?.name?.split(" ")[0] ||
+        resp.modelName?.split(" ")[0] ||
+        resp.modelId.split("/").pop()?.split("-")[0] ||
+        "Model";
+
+      if (!modelWinMap.has(resp.modelId)) {
+        modelWinMap.set(resp.modelId, { shortName, wins: 0, total: 0 });
+      }
+      const entry = modelWinMap.get(resp.modelId)!;
+      entry.total += 1;
+      if (resp.won) entry.wins += 1;
+    });
+  });
+
+  const winPills = Array.from(modelWinMap.entries()).map(([id, stat]) => ({
+    id,
+    shortName: stat.shortName,
+    wins: stat.wins,
+    total: stat.total,
+  }));
+
   const streamSingleModel = async (
     turnId: string,
     modelId: string,
@@ -279,6 +309,7 @@ export function ArenaScreen({
         threadTitle={
           activeThreadId ? `Thread ${activeThreadId.slice(0, 6)}` : "New Arena"
         }
+        models={winPills.length > 0 ? winPills : undefined}
       />
       <ArenaGrid
         prompt={
