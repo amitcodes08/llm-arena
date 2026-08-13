@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { CatalogModel } from "@/infrastructure/fetch-model-catalog";
 import { TurnState, ResponseState } from "./turn-state";
 import { ArenaGrid, ModelCardData } from "@/app/arena/components/arena-grid";
@@ -30,7 +29,6 @@ export function ArenaScreen({
   initialTurns = [],
   isOwner = true,
 }: Readonly<ArenaScreenProps>) {
-  const router = useRouter();
   const { addThread } = useThreadHistory();
   const [selectedModels, setSelectedModels] =
     useState<string[]>(defaultSelection);
@@ -73,7 +71,9 @@ export function ArenaScreen({
           r.modelName?.split(" ")[0] ||
           r.modelId.split("/").pop()?.split("-")[0] ||
           "Model",
-        response: r.text || (r.status === "STREAMING" ? "..." : "No response"),
+        response:
+          r.text ||
+          (r.status === "STREAMING" ? "Generating answer..." : "No response"),
         status:
           r.status === "COMPLETE"
             ? "COMPLETED"
@@ -133,43 +133,33 @@ export function ArenaScreen({
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        const now = performance.now();
-        if (!firstTokenTime) firstTokenTime = now;
+        if (chunk) {
+          const now = performance.now();
+          if (!firstTokenTime) firstTokenTime = now;
+          streamedText += chunk;
 
-        // AI SDK data stream format parsing
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("0:")) {
-            try {
-              const textContent = JSON.parse(line.slice(2));
-              streamedText += textContent;
-            } catch {
-              streamedText += line.slice(2);
-            }
-          }
+          const ttftMs = Math.round(
+            firstTokenTime ? firstTokenTime - startTime : now - startTime
+          );
+          const totalSec = (now - startTime) / 1000;
+          const tokenEstimate = Math.max(1, Math.ceil(streamedText.length / 4));
+          const tokPerSec =
+            totalSec > 0 ? Number((tokenEstimate / totalSec).toFixed(1)) : 0;
+
+          updateResponseState(turnId, modelId, {
+            text: streamedText,
+            status: "STREAMING",
+            metrics: {
+              modelId,
+              timeToFirstTokenMs: ttftMs,
+              tokensPerSecond: tokPerSec,
+              inputTokens: null,
+              outputTokens: tokenEstimate,
+              totalTokens: tokenEstimate,
+              costUsd: 0,
+            },
+          });
         }
-
-        const ttftMs = Math.round(
-          firstTokenTime ? firstTokenTime - startTime : now - startTime
-        );
-        const totalSec = (now - startTime) / 1000;
-        const tokenEstimate = Math.ceil(streamedText.length / 4);
-        const tokPerSec =
-          totalSec > 0 ? Number((tokenEstimate / totalSec).toFixed(1)) : 0;
-
-        updateResponseState(turnId, modelId, {
-          text: streamedText,
-          status: "STREAMING",
-          metrics: {
-            modelId,
-            timeToFirstTokenMs: ttftMs,
-            tokensPerSecond: tokPerSec,
-            inputTokens: null,
-            outputTokens: tokenEstimate,
-            totalTokens: tokenEstimate,
-            costUsd: 0,
-          },
-        });
       }
 
       const endTime = performance.now();
@@ -177,7 +167,7 @@ export function ArenaScreen({
         firstTokenTime ? firstTokenTime - startTime : endTime - startTime
       );
       const finalSec = (endTime - startTime) / 1000;
-      const finalTokens = Math.ceil(streamedText.length / 4);
+      const finalTokens = Math.max(1, Math.ceil(streamedText.length / 4));
       const finalTokPerSec =
         finalSec > 0 ? Number((finalTokens / finalSec).toFixed(1)) : 0;
 
@@ -214,15 +204,16 @@ export function ArenaScreen({
     });
 
     if (!res.success || !res.turnId || !res.threadId) {
-      alert(res.error || "Failed to start turn.");
+      alert(res.error || "Failed to start turn. Make sure you are signed in.");
       setIsSubmitting(false);
       return;
     }
 
+    const newThreadId = res.threadId;
     if (!activeThreadId) {
-      setActiveThreadId(res.threadId);
-      addThread({ id: res.threadId, title: promptText.slice(0, 40) });
-      router.push(`/t/${res.threadId}`);
+      setActiveThreadId(newThreadId);
+      addThread({ id: newThreadId, title: promptText.slice(0, 40) });
+      window.history.pushState({}, "", `/t/${newThreadId}`);
     }
 
     const newTurnId = res.turnId;

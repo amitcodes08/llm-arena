@@ -44,8 +44,8 @@ export async function fetchFreeModelCatalog(): Promise<CatalogModel[] | null> {
       .filter((m) => m.id.endsWith(":free"))
       .map((m) => ({
         id: m.id,
-        name: m.name.replace(":free", "").trim(),
-        contextLength: m.context_length || 8192,
+        name: formatModelName(m.id, m.name),
+        contextLength: m.context_length || 131072,
         pricingPrompt: m.pricing?.prompt ?? "0",
         pricingCompletion: m.pricing?.completion ?? "0",
         isFree: true,
@@ -59,27 +59,102 @@ export async function fetchFreeModelCatalog(): Promise<CatalogModel[] | null> {
   }
 }
 
-const fallbackCatalog: CatalogModel[] = [
+function formatModelName(id: string, rawName: string): string {
+  if (rawName && !rawName.includes("/")) {
+    return rawName.replace(":free", "").trim();
+  }
+  const cleanId = id.replace(":free", "");
+  const [provider, model] = cleanId.split("/");
+  const providerLabel = provider
+    ? provider.charAt(0).toUpperCase() + provider.slice(1)
+    : "";
+  const modelLabel = model
+    ? model
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ")
+    : cleanId;
+
+  return providerLabel ? `${providerLabel}: ${modelLabel}` : modelLabel;
+}
+
+export const fallbackCatalog: CatalogModel[] = [
   {
-    id: "meta-llama/llama-3.1-8b-instruct:free",
-    name: "Llama 3.1 8B Instruct",
+    id: "google/gemma-4-31b-it:free",
+    name: "Google: Gemma 4 31B IT",
     contextLength: 131072,
     pricingPrompt: "0",
     pricingCompletion: "0",
     isFree: true,
   },
   {
-    id: "qwen/qwen-2.5-72b-instruct:free",
-    name: "Qwen 2.5 72B Instruct",
+    id: "openai/gpt-oss-20b:free",
+    name: "OpenAI: GPT OSS 20B",
+    contextLength: 131072,
+    pricingPrompt: "0",
+    pricingCompletion: "0",
+    isFree: true,
+  },
+  {
+    id: "nvidia/nemotron-3.5-lightning:free",
+    name: "NVIDIA: Nemotron 3.5 Lightning",
+    contextLength: 131072,
+    pricingPrompt: "0",
+    pricingCompletion: "0",
+    isFree: true,
+  },
+  {
+    id: "google/gemma-4-26b-a4b-it:free",
+    name: "Google: Gemma 4 26B A4B IT",
+    contextLength: 131072,
+    pricingPrompt: "0",
+    pricingCompletion: "0",
+    isFree: true,
+  },
+  {
+    id: "nvidia/nemotron-3-nano-30b-a3b:free",
+    name: "NVIDIA: Nemotron 3 Nano 30B",
+    contextLength: 131072,
+    pricingPrompt: "0",
+    pricingCompletion: "0",
+    isFree: true,
+  },
+  {
+    id: "nvidia/nemotron-nano-9b-v2:free",
+    name: "NVIDIA: Nemotron Nano 9B V2",
+    contextLength: 131072,
+    pricingPrompt: "0",
+    pricingCompletion: "0",
+    isFree: true,
+  },
+  {
+    id: "cohere/north-mini-code:free",
+    name: "Cohere: North Mini Code",
+    contextLength: 65536,
+    pricingPrompt: "0",
+    pricingCompletion: "0",
+    isFree: true,
+  },
+  {
+    id: "liquid/lfm-2.5-2.6b:free",
+    name: "Liquid: LFM 2.5 2.6B",
     contextLength: 32768,
     pricingPrompt: "0",
     pricingCompletion: "0",
     isFree: true,
   },
   {
-    id: "google/gemma-2-9b-it:free",
-    name: "Gemma 2 9B IT",
-    contextLength: 8192,
+    id: "poolside/laguna-s-2.1:free",
+    name: "Poolside: Laguna S 2.1",
+    contextLength: 32768,
+    pricingPrompt: "0",
+    pricingCompletion: "0",
+    isFree: true,
+  },
+  {
+    id: "poolside/laguna-xs-2.1:free",
+    name: "Poolside: Laguna XS 2.1",
+    contextLength: 16384,
     pricingPrompt: "0",
     pricingCompletion: "0",
     isFree: true,

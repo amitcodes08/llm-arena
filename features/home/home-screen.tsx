@@ -29,7 +29,20 @@ export function HomeScreen({
   defaultSelection,
   onCastVote,
 }: Readonly<HomeScreenProps>) {
-  const [activeTab, setActiveTab] = useState<"overview" | "arena">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "arena">(() => {
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem("llm_arena_active_tab");
+      if (saved === "arena" || saved === "overview") return saved;
+    }
+    return "overview";
+  });
+
+  const switchTab = (tab: "overview" | "arena") => {
+    setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("llm_arena_active_tab", tab);
+    }
+  };
 
   if (activeTab === "arena") {
     return (
@@ -41,7 +54,7 @@ export function HomeScreen({
             <span className="font-mono">Live Arena Ready</span>
           </div>
           <button
-            onClick={() => setActiveTab("overview")}
+            onClick={() => switchTab("overview")}
             className="text-primary flex items-center gap-1 font-semibold hover:underline"
           >
             <span>Back to Homepage Overview</span>
@@ -58,11 +71,11 @@ export function HomeScreen({
   }
 
   return (
-    <div className="bg-background text-foreground mx-auto w-full max-w-6xl flex-1 space-y-16 overflow-y-auto p-6 sm:p-12">
+    <div className="bg-background text-foreground mx-auto flex h-full w-full max-w-6xl flex-1 flex-col space-y-16 overflow-y-auto p-6 sm:p-12">
       {/* Top Switcher */}
       <div className="flex justify-end">
         <button
-          onClick={() => setActiveTab("arena")}
+          onClick={() => switchTab("arena")}
           className="btn-accent flex items-center gap-2 text-xs font-semibold"
         >
           <Swords className="h-4 w-4" />
@@ -89,7 +102,7 @@ export function HomeScreen({
 
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           <button
-            onClick={() => setActiveTab("arena")}
+            onClick={() => switchTab("arena")}
             className="btn-accent flex items-center gap-2 px-6 py-3 text-sm font-semibold shadow-md"
           >
             <Swords className="h-4 w-4" />
@@ -156,11 +169,11 @@ export function HomeScreen({
             <span>OpenRouter Free Catalog</span>
           </div>
           <h2 className="font-display text-foreground text-2xl font-normal">
-            Explore {catalog?.length || 3}+ Models
+            Explore {catalog?.length || 10}+ Live Free Models
           </h2>
           <p className="text-muted-foreground max-w-lg text-sm">
-            Compare context window sizes and specifications across Llama 3.1,
-            Qwen 2.5, Gemma 2, and more.
+            Compare context window sizes and live benchmarks across Gemma 4,
+            GPT-OSS, Nemotron 3.5, and more.
           </p>
         </div>
 
