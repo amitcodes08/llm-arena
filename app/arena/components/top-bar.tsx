@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Show, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Share2, Check } from "lucide-react";
+import posthog from "posthog-js";
 
 interface TopBarProps {
   threadTitle?: string;
@@ -30,6 +31,11 @@ export function TopBar({
     if (typeof window !== "undefined") {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
+      posthog.capture("thread_shared", {
+        threadId,
+        threadTitle,
+        url: window.location.href,
+      });
       setTimeout(() => setCopied(false), 2000);
     }
   };

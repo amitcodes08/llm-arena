@@ -11,6 +11,7 @@ import { findAppUserId } from "@/infrastructure/current-user";
 import { fetchFreeModelCatalog } from "@/infrastructure/fetch-model-catalog";
 import { defaultModelSelection } from "@/infrastructure/model-catalog";
 import { ajPublic } from "@/app/arena/lib/arcjet";
+import { posthogServer } from "@/app/arena/lib/posthog-server";
 import { ShieldAlert } from "lucide-react";
 
 interface DBResponse {
@@ -155,6 +156,18 @@ export default async function ThreadPage({
   const { userId: clerkId } = await auth();
   const viewerId = clerkId ? await findAppUserId(clerkId) : null;
   const isOwner = viewerId !== null && viewerId === thread.userId;
+
+  if (posthogServer) {
+    posthogServer.capture({
+      distinctId: clerkId ?? `anonymous_${threadId}`,
+      event: "shared_thread_viewed",
+      properties: {
+        threadId: thread.id,
+        isOwner,
+        turnCount: thread.turns.length,
+      },
+    });
+  }
 
   const initialTurns: readonly TurnState[] = thread.turns.map(
     (turn: DBTurn) => ({

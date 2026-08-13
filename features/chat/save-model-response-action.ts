@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { posthogServer } from "@/app/arena/lib/posthog-server";
 import { database } from "@/infrastructure/database";
 import { findAppUserId } from "@/infrastructure/current-user";
 
@@ -60,6 +61,20 @@ export async function saveModelResponseAction(input: SaveModelResponseInput) {
           modelId: input.modelId,
           status: "COMPLETED",
           content: input.content,
+          timeToFirstTokenMs: input.timeToFirstTokenMs,
+          tokensPerSecond: input.tokensPerSecond,
+          totalTokens: input.totalTokens,
+        },
+      });
+    }
+
+    if (posthogServer) {
+      posthogServer.capture({
+        distinctId: clerkId,
+        event: "stream_completed",
+        properties: {
+          turnId: input.turnId,
+          modelId: input.modelId,
           timeToFirstTokenMs: input.timeToFirstTokenMs,
           tokensPerSecond: input.tokensPerSecond,
           totalTokens: input.totalTokens,

@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { posthogServer } from "@/app/arena/lib/posthog-server";
 import { database } from "@/infrastructure/database";
 import { findAppUserId } from "@/infrastructure/current-user";
 
@@ -74,6 +75,21 @@ export async function startTurnAction(input: StartTurnInput) {
         },
       },
     });
+
+    if (posthogServer) {
+      posthogServer.capture({
+        distinctId: clerkId,
+        event: "turn_started",
+        properties: {
+          threadId,
+          turnId: turn.id,
+          turnNumber: turnCount + 1,
+          modelCount: input.modelIds.length,
+          modelIds: input.modelIds,
+          promptLength: input.prompt.length,
+        },
+      });
+    }
 
     return {
       success: true,
