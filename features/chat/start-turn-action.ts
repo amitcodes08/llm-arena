@@ -24,6 +24,19 @@ export async function startTurnAction(input: StartTurnInput) {
   try {
     let threadId = input.threadId;
 
+    if (threadId) {
+      // Validate that the existing thread belongs to this user.
+      // If it belongs to another author (public view), fork into a new thread for this user.
+      const existingThread = await database().thread.findUnique({
+        where: { id: threadId },
+        select: { userId: true },
+      });
+
+      if (!existingThread || existingThread.userId !== appUserId) {
+        threadId = undefined;
+      }
+    }
+
     if (!threadId) {
       const thread = await database().thread.create({
         data: {

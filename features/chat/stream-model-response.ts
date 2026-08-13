@@ -11,9 +11,14 @@ export function streamModelResponse(
   let firstTokenTime: number | null = null;
   let fullText = "";
 
+  const messages =
+    data.messages && data.messages.length > 0
+      ? data.messages
+      : [{ role: "user" as const, content: data.prompt }];
+
   const result = streamText({
     model: openrouter(data.modelId),
-    prompt: data.prompt,
+    messages,
     onChunk({ chunk }: { chunk: { type: string; textDelta?: string } }) {
       if (chunk.type === "text-delta" && chunk.textDelta) {
         if (!firstTokenTime) {
@@ -23,9 +28,11 @@ export function streamModelResponse(
       }
     },
     onFinish: async ({
+      text,
       usage,
     }: {
-      usage: {
+      text?: string;
+      usage?: {
         completionTokens?: number;
         outputTokens?: number;
         promptTokens?: number;
@@ -42,6 +49,7 @@ export function streamModelResponse(
       const inputTokens = usage?.promptTokens ?? usage?.inputTokens ?? 0;
       const totalTokens = usage?.totalTokens ?? inputTokens + outputTokens;
       const tokensPerSec = totalTimeSec > 0 ? outputTokens / totalTimeSec : 0;
+      const finalText = text || fullText;
 
       try {
         const existing = await database().modelResponse.findFirst({
@@ -54,7 +62,7 @@ export function streamModelResponse(
             where: { id: existing.id },
             data: {
               status: "COMPLETED",
-              content: fullText,
+              content: finalText,
               timeToFirstTokenMs: ttftMs,
               tokensPerSecond: tokensPerSec,
               totalTokens,

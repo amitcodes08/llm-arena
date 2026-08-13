@@ -1,9 +1,11 @@
 import { database } from "@/infrastructure/database";
+import { fetchFreeModelCatalog } from "@/infrastructure/fetch-model-catalog";
 
 export interface LeaderboardRow {
   rank: number;
   modelId: string;
   modelName: string;
+  shortName: string;
   winRatePct: number;
   wins: number;
   totalVotes: number;
@@ -15,11 +17,25 @@ export async function getLeaderboardStandings(
   userId: string | null
 ): Promise<LeaderboardRow[]> {
   try {
-    const votes = await database().vote.findMany({
-      where: userId ? { userId } : {},
+    const catalog = await fetchFreeModelCatalog();
+
+    // Query turns that have a cast vote
+    const turns = await database().turn.findMany({
+      where: {
+        votes: {
+          some: userId ? { userId } : {},
+        },
+      },
       select: {
-        winnerModelResponse: {
+        id: true,
+        votes: {
+          where: userId ? { userId } : {},
+          select: { winnerModelResponseId: true },
+        },
+        responses: {
+          where: { status: "COMPLETED" },
           select: {
+            id: true,
             modelId: true,
             timeToFirstTokenMs: true,
             tokensPerSecond: true,
@@ -28,20 +44,11 @@ export async function getLeaderboardStandings(
       },
     });
 
-    const responses = await database().modelResponse.findMany({
-      where: { status: "COMPLETED" },
-      select: {
-        modelId: true,
-        timeToFirstTokenMs: true,
-        tokensPerSecond: true,
-        turn: { select: { thread: { select: { userId: true } } } },
-      },
-    });
-
     const modelStatsMap = new Map<
       string,
       {
         name: string;
+        shortName: string;
         wins: number;
         total: number;
         ttftSum: number;
@@ -51,10 +58,16 @@ export async function getLeaderboardStandings(
       }
     >();
 
-    const getOrInit = (id: string, name?: string) => {
+    const getOrInit = (id: string) => {
       if (!modelStatsMap.has(id)) {
+        const catModel = catalog?.find((m) => m.id === id);
+        const name =
+          catModel?.name || id.split("/").pop()?.replace(":free", "") || id;
+        const shortName = name.split(" ")[0] || "Model";
+
         modelStatsMap.set(id, {
-          name: name || id.split("/").pop()?.replace(":free", "") || id,
+          name,
+          shortName,
           wins: 0,
           total: 0,
           ttftSum: 0,
@@ -66,24 +79,35 @@ export async function getLeaderboardStandings(
       return modelStatsMap.get(id)!;
     };
 
-    for (const r of responses) {
-      if (userId && r.turn.thread.userId !== userId) continue;
-      const stat = getOrInit(r.modelId);
-      stat.total += 1;
-      if (r.timeToFirstTokenMs) {
-        stat.ttftSum += r.timeToFirstTokenMs;
-        stat.ttftCount += 1;
-      }
-      if (r.tokensPerSecond) {
-        stat.tpsSum += Number(r.tokensPerSecond);
-        stat.tpsCount += 1;
+    // Calculate win rates strictly from voted turns
+    for (const turn of turns) {
+      if (turn.votes.length === 0 || turn.responses.length < 2) continue;
+      const winnerResponseId = turn.votes[0]?.winnerModelResponseId;
+
+      for (const resp of turn.responses) {
+        const stat = getOrInit(resp.modelId);
+        stat.total += 1;
+
+        if (resp.id === winnerResponseId) {
+          stat.wins += 1;
+        }
+
+        if (resp.timeToFirstTokenMs) {
+          stat.ttftSum += resp.timeToFirstTokenMs;
+          stat.ttftCount += 1;
+        }
+
+        if (resp.tokensPerSecond) {
+          stat.tpsSum += Number(resp.tokensPerSecond);
+          stat.tpsCount += 1;
+        }
       }
     }
 
-    for (const v of votes) {
-      if (v.winnerModelResponse) {
-        const stat = getOrInit(v.winnerModelResponse.modelId);
-        stat.wins += 1;
+    // Include any remaining catalog models with 0 votes if in global view
+    if (!userId && catalog) {
+      for (const m of catalog) {
+        getOrInit(m.id);
       }
     }
 
@@ -92,6 +116,7 @@ export async function getLeaderboardStandings(
         rank: 0,
         modelId: id,
         modelName: stat.name,
+        shortName: stat.shortName,
         winRatePct:
           stat.total > 0 ? Math.round((stat.wins / stat.total) * 100) : 0,
         wins: stat.wins,
@@ -103,7 +128,11 @@ export async function getLeaderboardStandings(
             ? Number((stat.tpsSum / stat.tpsCount).toFixed(1))
             : 0,
       }))
-      .sort((a, b) => b.winRatePct - a.winRatePct)
+      .sort((a, b) => {
+        if (b.winRatePct !== a.winRatePct) return b.winRatePct - a.winRatePct;
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        return b.avgTokensPerSec - a.avgTokensPerSec;
+      })
       .map((row, idx) => ({ ...row, rank: idx + 1 }));
 
     return rows;

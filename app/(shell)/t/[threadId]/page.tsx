@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { request as getRequest } from "@arcjet/next";
 
 import type { ResponseState, TurnState } from "@/features/arena/turn-state";
 import { ArenaScreen } from "@/features/arena/arena-screen";
@@ -9,6 +10,8 @@ import { database } from "@/infrastructure/database";
 import { findAppUserId } from "@/infrastructure/current-user";
 import { fetchFreeModelCatalog } from "@/infrastructure/fetch-model-catalog";
 import { defaultModelSelection } from "@/infrastructure/model-catalog";
+import { ajPublic } from "@/app/arena/lib/arcjet";
+import { ShieldAlert } from "lucide-react";
 
 interface DBResponse {
   id: string;
@@ -59,12 +62,65 @@ export async function generateMetadata({
   };
 }
 
+async function checkPublicAccess(): Promise<
+  "ALLOWED" | "RATE_LIMITED" | "DENIED"
+> {
+  try {
+    const req = await getRequest();
+    const decision = await ajPublic.protect(req);
+
+    if (decision.isDenied()) {
+      return decision.reason.isRateLimit() ? "RATE_LIMITED" : "DENIED";
+    }
+    return "ALLOWED";
+  } catch (err) {
+    console.error("[arcjet-public] check failed", err);
+    return "ALLOWED";
+  }
+}
+
 export default async function ThreadPage({
   params,
 }: {
   readonly params: Promise<{ threadId: string }>;
 }) {
   const { threadId } = await params;
+
+  // Arcjet protection for unauthenticated public thread sharing
+  const access = await checkPublicAccess();
+
+  if (access === "RATE_LIMITED") {
+    return (
+      <div className="bg-background flex h-full flex-1 flex-col items-center justify-center p-8 text-center">
+        <div className="bg-card border-border max-w-md space-y-4 rounded-xl border p-6 shadow-sm">
+          <ShieldAlert className="text-primary mx-auto h-10 w-10" />
+          <h2 className="text-foreground text-lg font-bold">
+            Too Many Requests
+          </h2>
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            You are viewing shared threads too quickly. Please wait a minute
+            before refreshing.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (access === "DENIED") {
+    return (
+      <div className="bg-background flex h-full flex-1 flex-col items-center justify-center p-8 text-center">
+        <div className="bg-card border-border max-w-md space-y-4 rounded-xl border p-6 shadow-sm">
+          <ShieldAlert className="text-error mx-auto h-10 w-10" />
+          <h2 className="text-foreground text-lg font-bold">Access Denied</h2>
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            Automated scraping and suspicious traffic are restricted on public
+            shared threads.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const catalog = await fetchFreeModelCatalog();
 
   const thread = await database().thread.findUnique({
@@ -109,21 +165,19 @@ export default async function ThreadPage({
         modelId: response.modelId,
         modelName: response.modelId,
         status: response.status === "COMPLETED" ? "COMPLETE" : response.status,
-        text: response.content || "",
+        text: response.content,
         won: turn.votes.some(
-          (v: DBVote) => v.winnerModelResponseId === response.id
+          (vote: DBVote) => vote.winnerModelResponseId === response.id
         ),
         metrics:
-          response.status === "COMPLETED"
+          response.timeToFirstTokenMs !== null
             ? {
                 modelId: response.modelId,
                 timeToFirstTokenMs: response.timeToFirstTokenMs,
-                tokensPerSecond: response.tokensPerSecond
-                  ? Number(response.tokensPerSecond)
-                  : null,
+                tokensPerSecond: Number(response.tokensPerSecond ?? 0),
                 inputTokens: null,
-                outputTokens: null,
-                totalTokens: response.totalTokens,
+                outputTokens: response.totalTokens ?? 0,
+                totalTokens: response.totalTokens ?? 0,
                 costUsd: 0,
               }
             : null,
@@ -131,19 +185,10 @@ export default async function ThreadPage({
     })
   );
 
-  const latestTurnModels =
-    initialTurns.at(-1)?.responses.map((r) => r.modelId) ?? [];
-
   return (
     <ArenaScreen
       catalog={catalog}
-      defaultSelection={
-        latestTurnModels.length > 0
-          ? latestTurnModels
-          : catalog
-            ? defaultModelSelection(catalog)
-            : []
-      }
+      defaultSelection={defaultModelSelection(catalog || [])}
       onCastVote={castVoteAction}
       threadId={thread.id}
       initialTurns={initialTurns}
