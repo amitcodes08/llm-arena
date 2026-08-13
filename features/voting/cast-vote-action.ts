@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { database } from "@/infrastructure/database";
 import { findAppUserId } from "@/infrastructure/current-user";
+import { posthogServer } from "@/app/arena/lib/posthog-server";
 
 export async function castVoteAction(turnId: string, modelResponseId: string) {
   const { userId: clerkId } = await auth();
@@ -25,7 +26,7 @@ export async function castVoteAction(turnId: string, modelResponseId: string) {
       return { success: false, error: "You can only vote on your own turns." };
     }
 
-    await database().vote.upsert({
+    const vote = await database().vote.upsert({
       where: { userId_turnId: { userId: appUserId, turnId } },
       update: { winnerModelResponseId: modelResponseId },
       create: {
@@ -34,7 +35,22 @@ export async function castVoteAction(turnId: string, modelResponseId: string) {
         turnId,
         winnerModelResponseId: modelResponseId,
       },
+      select: {
+        winnerModelResponse: { select: { modelId: true } },
+      },
     });
+
+    if (posthogServer) {
+      posthogServer.capture({
+        distinctId: clerkId,
+        event: "vote_cast",
+        properties: {
+          turnId,
+          modelResponseId,
+          winningModelId: vote.winnerModelResponse.modelId,
+        },
+      });
+    }
 
     return { success: true };
   } catch (error) {

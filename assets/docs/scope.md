@@ -79,8 +79,8 @@ Arcjet sits in front of this endpoint before any model is ever called: rate limi
 
 Every prompt sent, every answer finishing, and every vote cast should be tracked as a real PostHog event, so there's an honest funnel from prompt to answer to vote. A model failing should also be logged properly on the server, not just shown to the user and forgotten. Separately from that funnel, every actual model call should also be wrapped so PostHog captures its own real tokens, cost, and latency per call, that's PostHog's own LLM analytics, not the same thing as the funnel events or the numbers already shown on the response card.
 
-- [ ] Decide the approach
-- [ ] Build it
+- [x] Decide the approach — Multi-model parallel dispatch over independent HTTP stream connections, real-time TTFT and tokens/sec instrument strip metrics, winner voting action with single-winner constraint, Arcjet rate limiting & bot shield, and PostHog analytics.
+- [x] Build it — Created `startTurnAction`, updated `ArenaScreen` with multi-stream dispatcher, wired `/api/chat` with Arcjet WAF protection, and integrated `castVoteAction` with PostHog event capture.
 
 ## Slice 2: App shell & thread history
 
