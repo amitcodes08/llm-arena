@@ -56,7 +56,10 @@
 }
 
 .dark {
-  --background: oklch(0.19 0.014 55);
+  /* Surfaces, lightest job to heaviest. 
+     Background shifted to a deep, vintage espresso/sepia black.
+     Slightly higher chroma (0.03) gives it that retro, dusty warmth. */
+  --background: oklch(0.18 0.03 55);
   --card: oklch(0.23 0.016 55);
   --popover: oklch(0.26 0.017 55);
 

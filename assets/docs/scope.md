@@ -97,8 +97,8 @@ The frame everything else sits inside: a top bar and sidebar that stay in place 
 
 Anyone should be able to open a thread's link and see it, without an account, that's what actually makes it shareable. Only sending a prompt and voting need sign-in. A made-up or deleted thread just shows a plain not-found page either way. The thread's real owner sees everything everyone else sees, plus the ability to actually use it.
 
-- [ ] Decide the approach
-- [ ] Build it
+- [x] Decide the approach — Public link sharing, dynamic social metadata generation, full response and metrics visibility for public guests with read-only CTA banner, owner-restricted input and voting, and notFound() on missing threads.
+- [x] Build it — Added Share button with clipboard feedback to `TopBar`, added `generateMetadata` to `/t/[threadId]`, and built differentiated owner vs guest public viewer banner in `ArenaScreen`.
 
 ## Slice 4: Leaderboard
 
