@@ -29,7 +29,7 @@ export function HomeScreen({
   defaultSelection,
   onCastVote,
 }: Readonly<HomeScreenProps>) {
-  const [activeTab, setActiveTab] = useState<"arena" | "overview">("arena");
+  const [activeTab, setActiveTab] = useState<"overview" | "arena">("overview");
 
   if (activeTab === "arena") {
     return (
@@ -44,7 +44,7 @@ export function HomeScreen({
             onClick={() => setActiveTab("overview")}
             className="text-primary flex items-center gap-1 font-semibold hover:underline"
           >
-            <span>Learn More About LLM Arena</span>
+            <span>Back to Homepage Overview</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
