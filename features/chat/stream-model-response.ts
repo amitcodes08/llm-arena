@@ -11,9 +11,14 @@ export function streamModelResponse(
   let firstTokenTime: number | null = null;
   let fullText = "";
 
+  const messages =
+    data.messages && data.messages.length > 0
+      ? data.messages
+      : [{ role: "user" as const, content: data.prompt }];
+
   const result = streamText({
     model: openrouter(data.modelId),
-    prompt: data.prompt,
+    messages,
     onChunk({ chunk }: { chunk: { type: string; textDelta?: string } }) {
       if (chunk.type === "text-delta" && chunk.textDelta) {
         if (!firstTokenTime) {

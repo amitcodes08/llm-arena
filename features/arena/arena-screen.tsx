@@ -4,7 +4,11 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { CatalogModel } from "@/infrastructure/fetch-model-catalog";
 import { TurnState, ResponseState } from "./turn-state";
-import { ArenaGrid, ModelCardData } from "@/app/arena/components/arena-grid";
+import {
+  ArenaGrid,
+  ModelCardData,
+  TurnFeedItem,
+} from "@/app/arena/components/arena-grid";
 import { PromptInput } from "@/app/arena/components/prompt-input";
 import { TopBar } from "@/app/arena/components/top-bar";
 import { startTurnAction } from "@/features/chat/start-turn-action";
@@ -42,9 +46,6 @@ export function ArenaScreen({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Convert latest turn or fallback for initial view
-  const latestTurn = turns.at(-1);
-
   const updateResponseState = useCallback(
     (turnId: string, modelId: string, updates: Partial<ResponseState>) => {
       setTurns((prevTurns) =>
@@ -63,51 +64,74 @@ export function ArenaScreen({
     []
   );
 
-  const displayModels: ModelCardData[] = latestTurn
-    ? latestTurn.responses.map((r) => ({
-        id: r.modelId,
-        name:
-          catalog?.find((m) => m.id === r.modelId)?.name ||
-          r.modelName ||
-          r.modelId.split("/").pop()?.replace(":free", "") ||
-          r.modelId,
-        shortName:
-          r.modelName?.split(" ")[0] ||
-          r.modelId.split("/").pop()?.split("-")[0] ||
-          "Model",
-        response:
-          r.text ||
-          (r.status === "STREAMING" ? "Generating answer..." : "No response"),
-        status:
-          r.status === "COMPLETE"
-            ? "COMPLETED"
-            : r.status === "FAILED"
-              ? "FAILED"
-              : "STREAMING",
-        metrics: {
-          ttftMs: r.metrics?.timeToFirstTokenMs ?? 320,
-          tokensPerSec: r.metrics?.tokensPerSecond ?? 48,
-          totalTokens: r.metrics?.totalTokens ?? 120,
-        },
-        isWinner: r.won,
-      }))
-    : selectedModels.map((id) => {
-        const catModel = catalog?.find((m) => m.id === id);
-        const name =
-          catModel?.name || id.split("/").pop()?.replace(":free", "") || id;
-        const shortName = name.split(" ")[0];
+  // Map all turns into complete multi-turn feed items
+  const turnFeedItems: TurnFeedItem[] =
+    turns.length > 0
+      ? turns.map((turn, idx) => ({
+          id: turn.id,
+          turnNumber: idx + 1,
+          prompt: turn.prompt,
+          models: turn.responses.map((r): ModelCardData => {
+            const catModel = catalog?.find((m) => m.id === r.modelId);
+            const name =
+              catModel?.name ||
+              r.modelName ||
+              r.modelId.split("/").pop()?.replace(":free", "") ||
+              r.modelId;
+            const shortName =
+              r.modelName?.split(" ")[0] ||
+              r.modelId.split("/").pop()?.split("-")[0] ||
+              "Model";
 
-        return {
-          id,
-          name,
-          shortName,
-          response:
-            "Send a prompt below to evaluate parallel model streams in real time.",
-          status: "COMPLETED" as const,
-          metrics: { ttftMs: 320, tokensPerSec: 48.5, totalTokens: 142 },
-          isWinner: false,
-        };
-      });
+            return {
+              id: r.modelId,
+              name,
+              shortName,
+              response:
+                r.text ||
+                (r.status === "STREAMING"
+                  ? "Generating answer..."
+                  : "No response"),
+              status:
+                r.status === "COMPLETE"
+                  ? "COMPLETED"
+                  : r.status === "FAILED"
+                    ? "FAILED"
+                    : "STREAMING",
+              metrics: {
+                ttftMs: r.metrics?.timeToFirstTokenMs ?? 320,
+                tokensPerSec: r.metrics?.tokensPerSecond ?? 48,
+                totalTokens: r.metrics?.totalTokens ?? 120,
+              },
+              isWinner: r.won,
+            };
+          }),
+        }))
+      : [
+          {
+            id: "initial-empty",
+            prompt:
+              "Send a prompt below to evaluate parallel model streams in real time.",
+            models: selectedModels.map((id) => {
+              const catModel = catalog?.find((m) => m.id === id);
+              const name =
+                catModel?.name ||
+                id.split("/").pop()?.replace(":free", "") ||
+                id;
+              const shortName = name.split(" ")[0];
+              return {
+                id,
+                name,
+                shortName,
+                response:
+                  "Send a prompt below to evaluate parallel model streams in real time.",
+                status: "COMPLETED" as const,
+                metrics: { ttftMs: 320, tokensPerSec: 48.5, totalTokens: 142 },
+                isWinner: false,
+              };
+            }),
+          },
+        ];
 
   // Calculate live model win records for the current thread
   const modelWinMap = new Map<
@@ -145,7 +169,8 @@ export function ArenaScreen({
   const streamSingleModel = async (
     turnId: string,
     modelId: string,
-    promptText: string
+    promptText: string,
+    historyMessages: Array<{ role: "user" | "assistant"; content: string }>
   ) => {
     const startTime = performance.now();
     let firstTokenTime: number | null = null;
@@ -154,7 +179,12 @@ export function ArenaScreen({
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ turnId, modelId, prompt: promptText }),
+        body: JSON.stringify({
+          turnId,
+          modelId,
+          prompt: promptText,
+          messages: [...historyMessages, { role: "user", content: promptText }],
+        }),
       });
 
       if (!response.ok || !response.body) {
@@ -288,24 +318,39 @@ export function ArenaScreen({
 
     setTurns((prev) => [...prev, newTurn]);
 
-    // Dispatch parallel streams
+    // Dispatch parallel streams with each model's previous chat history
     selectedModels.forEach((modelId) => {
-      streamSingleModel(newTurnId, modelId, promptText);
+      const modelHistory: Array<{
+        role: "user" | "assistant";
+        content: string;
+      }> = [];
+      turns.forEach((t) => {
+        const resp = t.responses.find((r) => r.modelId === modelId);
+        if (resp && resp.text) {
+          modelHistory.push({ role: "user", content: t.prompt });
+          modelHistory.push({ role: "assistant", content: resp.text });
+        }
+      });
+
+      streamSingleModel(newTurnId, modelId, promptText, modelHistory);
     });
 
     setIsSubmitting(false);
   };
 
-  const handleVote = async (modelId: string) => {
-    if (!isOwner || !latestTurn) return;
-    const resp = latestTurn.responses.find((r) => r.modelId === modelId);
+  const handleVote = async (turnId: string, modelId: string) => {
+    if (!isOwner) return;
+    const targetTurn = turns.find((t) => t.id === turnId);
+    if (!targetTurn) return;
+
+    const resp = targetTurn.responses.find((r) => r.modelId === modelId);
     if (!resp) return;
 
-    const res = await onCastVote(latestTurn.id, resp.id);
+    const res = await onCastVote(targetTurn.id, resp.id);
     if (res.success) {
       setTurns((prevTurns) =>
         prevTurns.map((turn) => {
-          if (turn.id !== latestTurn.id) return turn;
+          if (turn.id !== turnId) return turn;
           return {
             ...turn,
             responses: turn.responses.map((r) => ({
@@ -329,12 +374,9 @@ export function ArenaScreen({
         threadId={activeThreadId}
         models={winPills.length > 0 ? winPills : undefined}
       />
+
       <ArenaGrid
-        prompt={
-          latestTurn?.prompt ||
-          "Send a prompt below to evaluate parallel model streams in real time."
-        }
-        models={displayModels}
+        turnItems={turnFeedItems}
         onVote={isOwner ? handleVote : undefined}
       />
 
