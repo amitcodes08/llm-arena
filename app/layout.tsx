@@ -36,12 +36,12 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col">
         <ClerkProvider>
           <PHProvider>
-            <header className="flex justify-between items-center p-4 border-b border-zinc-200 dark:border-zinc-800">
-              <span className="font-bold text-lg">LLM Arena</span>
-              <div className="flex gap-4 items-center">
+            <header className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
+              <span className="text-lg font-bold">LLM Arena</span>
+              <div className="flex items-center gap-4">
                 <Show when="signed-out">
                   <SignInButton mode="modal" />
                   <SignUpButton mode="modal" />
