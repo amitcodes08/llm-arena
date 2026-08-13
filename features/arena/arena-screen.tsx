@@ -16,7 +16,6 @@ import { saveModelResponseAction } from "@/features/chat/save-model-response-act
 import { useThreadHistory } from "@/infrastructure/thread-history-store";
 import { Swords, Eye } from "lucide-react";
 import { Show, SignInButton } from "@clerk/nextjs";
-import posthog from "posthog-js";
 
 interface ArenaScreenProps {
   readonly catalog: CatalogModel[] | null;
@@ -275,11 +274,6 @@ export function ArenaScreen({
       });
     } catch (error) {
       console.error(`[arena] stream error for ${modelId}:`, error);
-      posthog.capture("stream_failed", {
-        turnId,
-        modelId,
-        error: error instanceof Error ? error.message : String(error),
-      });
       updateResponseState(turnId, modelId, {
         status: "FAILED",
         text: "Model failed to answer.",
