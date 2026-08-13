@@ -106,42 +106,9 @@ export async function getLeaderboardStandings(
       .sort((a, b) => b.winRatePct - a.winRatePct)
       .map((row, idx) => ({ ...row, rank: idx + 1 }));
 
-    return rows.length > 0 ? rows : fallbackRows;
+    return rows;
   } catch (error) {
     console.error("[leaderboard-standings] failed to fetch standings", error);
-    return fallbackRows;
+    return [];
   }
 }
-
-const fallbackRows: LeaderboardRow[] = [
-  {
-    rank: 1,
-    modelId: "qwen/qwen-2.5-72b-instruct:free",
-    modelName: "Qwen 2.5 72B Instruct",
-    winRatePct: 72,
-    wins: 518,
-    totalVotes: 720,
-    avgTtftMs: 380,
-    avgTokensPerSec: 54.2,
-  },
-  {
-    rank: 2,
-    modelId: "meta-llama/llama-3.1-8b-instruct:free",
-    modelName: "Llama 3.1 8B Instruct",
-    winRatePct: 58,
-    wins: 412,
-    totalVotes: 710,
-    avgTtftMs: 310,
-    avgTokensPerSec: 49.8,
-  },
-  {
-    rank: 3,
-    modelId: "google/gemma-2-9b-it:free",
-    modelName: "Gemma 2 9B IT",
-    winRatePct: 45,
-    wins: 315,
-    totalVotes: 700,
-    avgTtftMs: 290,
-    avgTokensPerSec: 44.1,
-  },
-];

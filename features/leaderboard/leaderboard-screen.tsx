@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { LeaderboardRow } from "./leaderboard-standings";
-import { Trophy, Lock } from "lucide-react";
+import { Trophy, Lock, BarChart2 } from "lucide-react";
 
 interface LeaderboardScreenProps {
   readonly rows: LeaderboardRow[];
@@ -16,7 +16,7 @@ export function LeaderboardScreen({
   needsSignIn,
 }: Readonly<LeaderboardScreenProps>) {
   return (
-    <div className="mx-auto w-full max-w-5xl flex-1 space-y-6 overflow-y-auto p-6">
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-1 flex-col space-y-6 overflow-y-auto p-6">
       {/* Header & Toggle */}
       <div className="flex items-center justify-between">
         <div>
@@ -60,6 +60,25 @@ export function LeaderboardScreen({
             Your personal leaderboard tracks model win rates across your own
             threads and prompts.
           </p>
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="surface space-y-4 p-12 text-center">
+          <BarChart2 className="text-muted-foreground mx-auto h-10 w-10 opacity-60" />
+          <h2 className="text-foreground text-lg font-semibold">
+            No votes recorded yet
+          </h2>
+          <p className="text-muted-foreground mx-auto max-w-md text-sm leading-relaxed">
+            {view === "me"
+              ? "You haven't voted on any turns yet. Start an arena battle to vote for your favorite model!"
+              : "No model votes have been cast yet. Be the first to evaluate models in the arena and vote!"}
+          </p>
+          <Link
+            href="/"
+            className="btn-accent inline-flex items-center gap-2 text-xs font-semibold"
+          >
+            <Trophy className="h-4 w-4" />
+            <span>Enter the Arena</span>
+          </Link>
         </div>
       ) : (
         /* Standings Table */

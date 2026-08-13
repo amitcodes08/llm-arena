@@ -26,6 +26,35 @@ export async function castVoteAction(turnId: string, modelResponseId: string) {
       return { success: false, error: "You can only vote on your own turns." };
     }
 
+    // Validate that modelResponseId belongs to this turn and is COMPLETED
+    const targetResponse = await database().modelResponse.findUnique({
+      where: { id: modelResponseId },
+      select: { turnId: true, status: true, modelId: true },
+    });
+
+    if (
+      !targetResponse ||
+      targetResponse.turnId !== turnId ||
+      targetResponse.status !== "COMPLETED"
+    ) {
+      return {
+        success: false,
+        error: "Invalid or incomplete model response for this turn.",
+      };
+    }
+
+    // Validate that at least two model responses have completed in this turn
+    const completedCount = await database().modelResponse.count({
+      where: { turnId, status: "COMPLETED" },
+    });
+
+    if (completedCount < 2) {
+      return {
+        success: false,
+        error: "A vote requires at least two completed model responses.",
+      };
+    }
+
     const vote = await database().vote.upsert({
       where: { userId_turnId: { userId: appUserId, turnId } },
       update: { winnerModelResponseId: modelResponseId },
