@@ -1,14 +1,16 @@
 /**
- * Shared Arcjet client.
+ * Shared Arcjet client instances.
  *
- * Pre-configured with rate limiting, bot detection, and Shield WAF.
- * This is the base instance — individual route handlers can layer
- * additional rules on top via `aj.withRule(...)`.
- *
- * Not applied to any route yet; Feature 6 wires it into the chat endpoint.
+ * aj: Pre-configured for authenticated endpoints (WAF Shield, Bot Detection, User Token Bucket).
+ * ajPublic: Configured for unauthenticated public routes (WAF Shield, Bot Detection with Search Engine allowlist, IP Sliding Window).
  */
 
-import arcjet, { shield, detectBot, tokenBucket } from "@arcjet/next";
+import arcjet, {
+  shield,
+  detectBot,
+  tokenBucket,
+  slidingWindow,
+} from "@arcjet/next";
 import { env } from "@/app/env";
 
 export const aj = arcjet({
@@ -25,6 +27,22 @@ export const aj = arcjet({
       refillRate: 20,
       interval: "1h",
       capacity: 60,
+    }),
+  ],
+});
+
+export const ajPublic = arcjet({
+  key: env.ARCJET_KEY,
+  rules: [
+    shield({ mode: "LIVE" }),
+    detectBot({
+      mode: "LIVE",
+      allow: ["CATEGORY:SEARCH_ENGINE"],
+    }),
+    slidingWindow({
+      mode: "LIVE",
+      interval: "1m",
+      max: 60,
     }),
   ],
 });
