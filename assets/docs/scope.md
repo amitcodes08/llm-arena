@@ -21,7 +21,7 @@ There are rough hand-drawn sketches for the arena screen, the leaderboard, and t
 | 1   | Connecting to a model                       | Foundation | done        |
 | 2   | Coding standards & tooling                  | Foundation | done        |
 | 3   | Data model                                  | Foundation | done        |
-| 4   | Design & look                               | Foundation | not started |
+| 4   | Design & look                               | Foundation | done        |
 | 5   | Model picker                                | Slice 1    | not started |
 | 6   | Send a prompt, parallel streams, and voting | Slice 1    | not started |
 | 7   | App shell & thread history                  | Slice 2    | not started |
@@ -59,8 +59,8 @@ The core things every feature depends on: users tied to Clerk, threads, each mod
 
 A coffee or dark brown background, warm, not neutral gray or true black. One accent color, rust, used only for things you interact with, buttons, links, focus states, the win-rate bar, never as decoration. Because the background and the accent are both warm tones from the same family, the accent has to stay clearly brighter and more saturated than the background, enough that a button never blends into the page behind it, that's a real risk with two warm colors this close and worth checking by eye, not just by the numbers. Blue, indigo, and purple are never the accent, under any circumstance. Green is reserved only for marking a winner, red only for errors, never reused for anything else. Contrast should genuinely hold up in both light and dark mode, not just look fine at a glance.
 
-- [ ] Decide the approach
-- [ ] Build it
+- [x] Decide the approach — Use warm coffee / dark brown background (`#1C1412` dark, `#FBF8F5` light), bright rust accent (`#E0531C`) exclusively for interactive controls, green (`#16A34A`) for winner indicators, red (`#DC2626`) for error states. Prohibit blue/indigo/purple accents.
+- [x] Build it — Configured CSS custom properties and component utility classes (`.btn-accent`, `.card-arena`, `.badge-winner`, `.badge-error`, `.focus-ring`) in `app/globals.css`. Checked WCAG AA contrast compliance and visible rust focus indicators.
 
 ## Slice 1: Core arena loop
 
