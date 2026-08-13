@@ -106,8 +106,8 @@ Anyone should be able to open a thread's link and see it, without an account, th
 
 Two leaderboards from the same votes, one for everyone, one just for the signed-in user. Each row's win rate is the big, bold number, in the accent color, with a small bar next to it, always written as "won 4 of 5," never a bare percentage or a made-up score. Smaller, quieter numbers underneath for average speed and time-to-first-token, each clearly labeled. No cost or "cheapest" stat, every model is free, so that number never means anything here. First place gets a subtle highlight, nobody else does.
 
-- [ ] Decide the approach
-- [ ] Build it
+- [x] Decide the approach — Dual-view (Everyone vs Just me) aggregator calculating won-of-total records and average speed/TTFT metrics exclusively from voted turns, with "won X of Y" bold metric in accent color, first-place highlight tint, and signed-out invitation state.
+- [x] Build it — Created `getLeaderboardStandings`, implemented `LeaderboardScreen` with view toggle and subtle first-place styling, and wired server-rendered `LeaderboardPage`.
 
 ## Not doing right now
 
