@@ -16,17 +16,17 @@ There are rough hand-drawn sketches for the arena screen, the leaderboard, and t
 
 ## At a glance
 
-| #   | Feature                                     | Phase      | Status      |
-| --- | ------------------------------------------- | ---------- | ----------- |
-| 1   | Connecting to a model                       | Foundation | done        |
-| 2   | Coding standards & tooling                  | Foundation | done        |
-| 3   | Data model                                  | Foundation | done        |
-| 4   | Design & look                               | Foundation | not started |
-| 5   | Model picker                                | Slice 1    | not started |
-| 6   | Send a prompt, parallel streams, and voting | Slice 1    | not started |
-| 7   | App shell & thread history                  | Slice 2    | not started |
-| 8   | Public thread visibility & sharing          | Slice 3    | not started |
-| 9   | Leaderboard: global & personal              | Slice 4    | not started |
+| #   | Feature                                     | Phase      | Status |
+| --- | ------------------------------------------- | ---------- | ------ |
+| 1   | Connecting to a model                       | Foundation | done   |
+| 2   | Coding standards & tooling                  | Foundation | done   |
+| 3   | Data model                                  | Foundation | done   |
+| 4   | Design & look                               | Foundation | done   |
+| 5   | Model picker                                | Slice 1    | done   |
+| 6   | Send a prompt, parallel streams, and voting | Slice 1    | done   |
+| 7   | App shell & thread history                  | Slice 2    | done   |
+| 8   | Public thread visibility & sharing          | Slice 3    | done   |
+| 9   | Leaderboard: global & personal              | Slice 4    | done   |
 
 ## Foundation
 
@@ -59,8 +59,8 @@ The core things every feature depends on: users tied to Clerk, threads, each mod
 
 A coffee or dark brown background, warm, not neutral gray or true black. One accent color, rust, used only for things you interact with, buttons, links, focus states, the win-rate bar, never as decoration. Because the background and the accent are both warm tones from the same family, the accent has to stay clearly brighter and more saturated than the background, enough that a button never blends into the page behind it, that's a real risk with two warm colors this close and worth checking by eye, not just by the numbers. Blue, indigo, and purple are never the accent, under any circumstance. Green is reserved only for marking a winner, red only for errors, never reused for anything else. Contrast should genuinely hold up in both light and dark mode, not just look fine at a glance.
 
-- [ ] Decide the approach
-- [ ] Build it
+- [x] Decide the approach — Use warm coffee / dark brown background (`#1C1412` dark, `#FBF8F5` light), bright rust accent (`#E0531C`) exclusively for interactive controls, green (`#16A34A`) for winner indicators, red (`#DC2626`) for error states. Prohibit blue/indigo/purple accents.
+- [x] Build it — Configured CSS custom properties and component utility classes (`.btn-accent`, `.card-arena`, `.badge-winner`, `.badge-error`, `.focus-ring`) in `app/globals.css`. Checked WCAG AA contrast compliance and visible rust focus indicators.
 
 ## Slice 1: Core arena loop
 
@@ -68,8 +68,8 @@ A coffee or dark brown background, warm, not neutral gray or true black. One acc
 
 An "Add model" popover pulling OpenRouter's live free-tier list, sorted by context window, capped at three models, defaulting to all three selected, with removable chips next to the prompt box. Also render that same catalog as a simple `/models` page, name, context window, and pricing for each one, so anyone can browse the full list without opening the picker.
 
-- [ ] Decide the approach
-- [ ] Build it
+- [x] Decide the approach — Live OpenRouter free-tier list sorted by context window capacity, 1–3 model capacity limits, removable chips next to the prompt textarea, and `/models` catalog page with `measure-bar` context length bars.
+- [x] Build it — Created `ModelPickerPopover` component, integrated removable model chips into `PromptInput`, connected model picker state in `ArenaScreen`, and implemented `/models` catalog grid.
 
 ### 6. Send a prompt, parallel streams, and voting
 
