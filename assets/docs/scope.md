@@ -16,17 +16,17 @@ There are rough hand-drawn sketches for the arena screen, the leaderboard, and t
 
 ## At a glance
 
-| #   | Feature                                     | Phase      | Status      |
-| --- | ------------------------------------------- | ---------- | ----------- |
-| 1   | Connecting to a model                       | Foundation | done        |
-| 2   | Coding standards & tooling                  | Foundation | done        |
-| 3   | Data model                                  | Foundation | done        |
-| 4   | Design & look                               | Foundation | done        |
-| 5   | Model picker                                | Slice 1    | not started |
-| 6   | Send a prompt, parallel streams, and voting | Slice 1    | not started |
-| 7   | App shell & thread history                  | Slice 2    | not started |
-| 8   | Public thread visibility & sharing          | Slice 3    | not started |
-| 9   | Leaderboard: global & personal              | Slice 4    | not started |
+| #   | Feature                                     | Phase      | Status |
+| --- | ------------------------------------------- | ---------- | ------ |
+| 1   | Connecting to a model                       | Foundation | done   |
+| 2   | Coding standards & tooling                  | Foundation | done   |
+| 3   | Data model                                  | Foundation | done   |
+| 4   | Design & look                               | Foundation | done   |
+| 5   | Model picker                                | Slice 1    | done   |
+| 6   | Send a prompt, parallel streams, and voting | Slice 1    | done   |
+| 7   | App shell & thread history                  | Slice 2    | done   |
+| 8   | Public thread visibility & sharing          | Slice 3    | done   |
+| 9   | Leaderboard: global & personal              | Slice 4    | done   |
 
 ## Foundation
 
@@ -68,8 +68,8 @@ A coffee or dark brown background, warm, not neutral gray or true black. One acc
 
 An "Add model" popover pulling OpenRouter's live free-tier list, sorted by context window, capped at three models, defaulting to all three selected, with removable chips next to the prompt box. Also render that same catalog as a simple `/models` page, name, context window, and pricing for each one, so anyone can browse the full list without opening the picker.
 
-- [ ] Decide the approach
-- [ ] Build it
+- [x] Decide the approach — Live OpenRouter free-tier list sorted by context window capacity, 1–3 model capacity limits, removable chips next to the prompt textarea, and `/models` catalog page with `measure-bar` context length bars.
+- [x] Build it — Created `ModelPickerPopover` component, integrated removable model chips into `PromptInput`, connected model picker state in `ArenaScreen`, and implemented `/models` catalog grid.
 
 ### 6. Send a prompt, parallel streams, and voting
 

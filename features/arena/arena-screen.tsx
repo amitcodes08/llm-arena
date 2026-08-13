@@ -27,7 +27,8 @@ export function ArenaScreen({
   initialTurns = [],
   isOwner = true,
 }: Readonly<ArenaScreenProps>) {
-  const [selectedModels] = useState<string[]>(defaultSelection);
+  const [selectedModels, setSelectedModels] =
+    useState<string[]>(defaultSelection);
   const [turns] = useState<readonly TurnState[]>(initialTurns);
 
   // Convert latest turn or placeholder for grid display
@@ -105,7 +106,9 @@ export function ArenaScreen({
       />
       {isOwner && (
         <PromptInput
-          selectedModelsCount={selectedModels.length}
+          catalog={catalog}
+          selectedModelIds={selectedModels}
+          onSelectionChange={(ids) => setSelectedModels(ids)}
           onSend={(promptText) => {
             console.log("Send prompt:", promptText);
           }}

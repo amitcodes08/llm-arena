@@ -1,16 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, ArrowUp } from "lucide-react";
+import { ArrowUp, X } from "lucide-react";
+import { CatalogModel } from "@/infrastructure/fetch-model-catalog";
+import { ModelPickerPopover } from "@/features/models/model-picker-popover";
 
 interface PromptInputProps {
-  onSend?: (prompt: string) => void;
-  selectedModelsCount?: number;
+  readonly onSend?: (prompt: string) => void;
+  readonly catalog?: CatalogModel[] | null;
+  readonly selectedModelIds?: string[];
+  readonly onSelectionChange?: (ids: string[]) => void;
 }
 
 export function PromptInput({
   onSend,
-  selectedModelsCount = 3,
+  catalog,
+  selectedModelIds = [],
+  onSelectionChange,
 }: Readonly<PromptInputProps>) {
   const [prompt, setPrompt] = useState("");
 
@@ -29,9 +35,45 @@ export function PromptInput({
     }
   };
 
+  const removeChip = (id: string) => {
+    if (selectedModelIds.length > 1 && onSelectionChange) {
+      onSelectionChange(selectedModelIds.filter((m) => m !== id));
+    }
+  };
+
   return (
     <div className="border-border bg-card/80 sticky bottom-0 z-10 border-t p-4 backdrop-blur-sm">
       <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-3">
+        {/* Selected Model Chips */}
+        {selectedModelIds.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 px-1">
+            {selectedModelIds.map((id) => {
+              const model = catalog?.find((m) => m.id === id);
+              const name =
+                model?.name || id.split("/").pop()?.replace(":free", "") || id;
+
+              return (
+                <span
+                  key={id}
+                  className="bg-muted text-foreground border-border flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-xs"
+                >
+                  <span className="max-w-[120px] truncate">{name}</span>
+                  {selectedModelIds.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeChip(id)}
+                      className="text-muted-foreground hover:text-foreground rounded p-0.5"
+                      title="Remove model"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        )}
+
         {/* Main Textarea Container */}
         <div className="border-input bg-background focus-within:border-primary relative rounded-xl border p-4 shadow-xs transition-all">
           <textarea
@@ -46,16 +88,14 @@ export function PromptInput({
           {/* Action Bar inside textarea */}
           <div className="border-border mt-2 flex items-center justify-between border-t pt-3">
             <div className="flex items-center gap-2.5">
-              {/* + Add Model Button */}
-              <button
-                type="button"
-                className="border-border bg-muted hover:bg-primary hover:text-primary-foreground flex items-center gap-1.5 rounded-lg border px-3.5 py-1.5 text-xs font-semibold shadow-xs transition-all"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Add Model</span>
-              </button>
+              {/* + Add Model Popover */}
+              <ModelPickerPopover
+                catalog={catalog || null}
+                selectedModelIds={selectedModelIds}
+                onSelectionChange={(ids) => onSelectionChange?.(ids)}
+              />
               <span className="text-muted-foreground hidden text-xs sm:inline">
-                Up to 3 · {selectedModelsCount} selected
+                Up to 3 · {selectedModelIds.length} selected
               </span>
             </div>
 
