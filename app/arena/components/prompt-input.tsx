@@ -10,7 +10,8 @@ interface PromptInputProps {
   readonly catalog?: CatalogModel[] | null;
   readonly selectedModelIds?: string[];
   readonly onSelectionChange?: (ids: string[]) => void;
-  readonly initialPromptValue?: string;
+  readonly value?: string;
+  readonly onChange?: (value: string) => void;
   readonly isSubmitting?: boolean;
 }
 
@@ -19,24 +20,28 @@ export function PromptInput({
   catalog,
   selectedModelIds = [],
   onSelectionChange,
-  initialPromptValue = "",
+  value: controlledValue,
+  onChange: onControlledChange,
   isSubmitting = false,
 }: Readonly<PromptInputProps>) {
-  const [prompt, setPrompt] = useState(initialPromptValue);
-  const [prevInitialPrompt, setPrevInitialPrompt] =
-    useState(initialPromptValue);
+  const [internalPrompt, setInternalPrompt] = useState("");
+  const isControlled = controlledValue !== undefined;
+  const prompt = isControlled ? controlledValue : internalPrompt;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  if (initialPromptValue !== prevInitialPrompt) {
-    setPrevInitialPrompt(initialPromptValue);
-    setPrompt(initialPromptValue);
-  }
+  const handlePromptChange = (newVal: string) => {
+    if (isControlled) {
+      onControlledChange?.(newVal);
+    } else {
+      setInternalPrompt(newVal);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim() && !isSubmitting) {
       onSend?.(prompt.trim());
-      setPrompt("");
+      handlePromptChange("");
     }
   };
 
@@ -95,7 +100,7 @@ export function PromptInput({
           <textarea
             ref={textareaRef}
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e) => handlePromptChange(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isSubmitting}
             placeholder="Ask anything to benchmark side by side. Enter to send, Shift + Enter for a new line"
