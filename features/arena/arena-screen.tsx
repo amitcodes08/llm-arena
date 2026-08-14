@@ -263,6 +263,7 @@ export function ArenaScreen({
     if (isSubmitting || selectedModels.length === 0) return;
     setIsSubmitting(true);
     setErrorMessage(null);
+    setActiveInputPrompt("");
 
     const res = await startTurnAction({
       threadId: activeThreadId,
@@ -401,7 +402,8 @@ export function ArenaScreen({
           selectedModelIds={selectedModels}
           onSelectionChange={(ids) => setSelectedModels(ids)}
           onSend={handleSendPrompt}
-          initialPromptValue={activeInputPrompt}
+          value={activeInputPrompt}
+          onChange={setActiveInputPrompt}
           isSubmitting={isSubmitting}
         />
       ) : (
