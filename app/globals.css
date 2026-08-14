@@ -203,6 +203,119 @@
     @apply bg-muted rounded-md;
     animation: skeleton-breathe 1.6s ease-in-out infinite;
   }
+
+  /* Primary action button: high-contrast monochromatic inversion with micro-interactions */
+  .btn-accent {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 inline-flex cursor-pointer items-center justify-center rounded-lg font-medium transition-all duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Streaming cursor pulse for real-time model token outputs */
+  .streaming-cursor {
+    display: inline-block;
+    width: 0.35em;
+    height: 1.1em;
+    margin-left: 0.2em;
+    vertical-align: -0.15em;
+    background-color: currentColor;
+    border-radius: 1px;
+    animation: cursor-blink 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Minimalist Markdown Typography for LLM responses */
+  .prose-arena {
+    @apply text-foreground text-sm leading-relaxed;
+  }
+
+  .prose-arena p {
+    @apply mb-3 last:mb-0;
+  }
+
+  .prose-arena h1,
+  .prose-arena h2,
+  .prose-arena h3,
+  .prose-arena h4 {
+    @apply text-foreground mt-4 mb-2 font-semibold tracking-tight first:mt-0;
+  }
+
+  .prose-arena h1 {
+    @apply text-lg;
+  }
+  .prose-arena h2 {
+    @apply text-base;
+  }
+  .prose-arena h3 {
+    @apply text-sm;
+  }
+
+  .prose-arena ul {
+    @apply mb-3 list-disc space-y-1 pl-5;
+  }
+
+  .prose-arena ol {
+    @apply mb-3 list-decimal space-y-1 pl-5;
+  }
+
+  .prose-arena li {
+    @apply leading-relaxed;
+  }
+
+  .prose-arena blockquote {
+    @apply border-border text-muted-foreground my-3 border-l-2 pl-3 italic;
+  }
+
+  .prose-arena code:not(pre code) {
+    @apply bg-muted text-foreground border-border/60 rounded border px-1.5 py-0.5 font-mono text-[12px];
+  }
+
+  .prose-arena pre {
+    @apply bg-muted/70 text-foreground border-border my-3 overflow-x-auto rounded-lg border p-3 font-mono text-[12px];
+  }
+
+  .prose-arena pre code {
+    @apply text-foreground border-none bg-transparent p-0;
+  }
+
+  .prose-arena table {
+    @apply my-3 w-full border-collapse text-xs;
+  }
+
+  .prose-arena th {
+    @apply border-border bg-muted/40 border-b p-2 text-left font-semibold;
+  }
+
+  .prose-arena td {
+    @apply border-border/60 border-b p-2;
+  }
+
+  .prose-arena hr {
+    @apply border-border my-4;
+  }
+
+  /* Subtle entrance fade for cards and chat turns */
+  .animate-enter {
+    animation: enter-smooth 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.1;
+  }
+}
+
+@keyframes enter-smooth {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes skeleton-breathe {

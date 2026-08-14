@@ -57,10 +57,10 @@ The core things every feature depends on: users tied to Clerk, threads, each mod
 
 ### 4. Design & look
 
-A coffee or dark brown background, warm, not neutral gray or true black. One accent color, rust, used only for things you interact with, buttons, links, focus states, the win-rate bar, never as decoration. Because the background and the accent are both warm tones from the same family, the accent has to stay clearly brighter and more saturated than the background, enough that a button never blends into the page behind it, that's a real risk with two warm colors this close and worth checking by eye, not just by the numbers. Blue, indigo, and purple are never the accent, under any circumstance. Green is reserved only for marking a winner, red only for errors, never reused for anything else. Contrast should genuinely hold up in both light and dark mode, not just look fine at a glance.
+An ultra-minimalist, monochromatic design language with crisp contrast in both light and dark modes. Interactive controls and primaries use high-contrast black/white inversion (`.btn-accent`), paired with stark typography (Geist Sans, Geist Mono for tabular measurements, Newsreader for editorial headlines). Green is reserved exclusively for winner indicators (`--winner`), red for errors (`--destructive`), with zero chromatic clutter. Focus states have high-visibility outline rings, markdown is rendered with a clean minimalist prose layer, and all screens feature fully responsive layouts (mobile slide-over drawer, responsive leaderboard cards, and empty state battle suggestions).
 
-- [x] Decide the approach — Use warm coffee / dark brown background (`#1C1412` dark, `#FBF8F5` light), bright rust accent (`#E0531C`) exclusively for interactive controls, green (`#16A34A`) for winner indicators, red (`#DC2626`) for error states. Prohibit blue/indigo/purple accents.
-- [x] Build it — Configured CSS custom properties and component utility classes (`.btn-accent`, `.card-arena`, `.badge-winner`, `.badge-error`, `.focus-ring`) in `app/globals.css`. Checked WCAG AA contrast compliance and visible rust focus indicators.
+- [x] Decide the approach — Use sleek monochromatic design system (`oklch` tokens), high-contrast inversion for interactive controls (`.btn-accent`), green for winner indicators only, red for error boundaries. Prohibit generic colorful accents.
+- [x] Build it — Configured CSS custom properties and component utility classes (`.btn-accent`, `.surface`, `.prose-arena`, `.streaming-cursor`, `.animate-enter`) in `app/globals.css`. Checked WCAG AA contrast compliance and visible focus rings.
 
 ## Slice 1: Core arena loop
 

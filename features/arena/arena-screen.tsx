@@ -14,7 +14,7 @@ import { TopBar } from "@/app/arena/components/top-bar";
 import { startTurnAction } from "@/features/chat/start-turn-action";
 import { saveModelResponseAction } from "@/features/chat/save-model-response-action";
 import { useThreadHistory } from "@/infrastructure/thread-history-store";
-import { Swords, Eye } from "lucide-react";
+import { Swords, Eye, AlertCircle, X } from "lucide-react";
 import { Show, SignInButton } from "@clerk/nextjs";
 
 interface ArenaScreenProps {
@@ -45,6 +45,8 @@ export function ArenaScreen({
     initialThreadId
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activeInputPrompt, setActiveInputPrompt] = useState<string>("");
 
   const updateResponseState = useCallback(
     (turnId: string, modelId: string, updates: Partial<ResponseState>) => {
@@ -64,7 +66,7 @@ export function ArenaScreen({
     []
   );
 
-  // Map all turns into complete multi-turn feed items
+  // Map all turns into complete multi-turn feed items (empty array if no turns)
   const turnFeedItems: TurnFeedItem[] =
     turns.length > 0
       ? turns.map((turn, idx) => ({
@@ -99,39 +101,15 @@ export function ArenaScreen({
                     ? "FAILED"
                     : "STREAMING",
               metrics: {
-                ttftMs: r.metrics?.timeToFirstTokenMs ?? 320,
-                tokensPerSec: r.metrics?.tokensPerSecond ?? 48,
-                totalTokens: r.metrics?.totalTokens ?? 120,
+                ttftMs: r.metrics?.timeToFirstTokenMs ?? 0,
+                tokensPerSec: r.metrics?.tokensPerSecond ?? 0,
+                totalTokens: r.metrics?.totalTokens ?? 0,
               },
               isWinner: r.won,
             };
           }),
         }))
-      : [
-          {
-            id: "initial-empty",
-            prompt:
-              "Send a prompt below to evaluate parallel model streams in real time.",
-            models: selectedModels.map((id) => {
-              const catModel = catalog?.find((m) => m.id === id);
-              const name =
-                catModel?.name ||
-                id.split("/").pop()?.replace(":free", "") ||
-                id;
-              const shortName = name.split(" ")[0];
-              return {
-                id,
-                name,
-                shortName,
-                response:
-                  "Send a prompt below to evaluate parallel model streams in real time.",
-                status: "COMPLETED" as const,
-                metrics: { ttftMs: 320, tokensPerSec: 48.5, totalTokens: 142 },
-                isWinner: false,
-              };
-            }),
-          },
-        ];
+      : [];
 
   // Calculate live model win records for the current thread
   const modelWinMap = new Map<
@@ -238,7 +216,7 @@ export function ArenaScreen({
       const finalTokPerSec =
         finalSec > 0 ? Number((finalTokens / finalSec).toFixed(1)) : 0;
 
-      // Verify database persistence and retrieve authoritative server/provider metrics
+      // Persist response and metrics to database
       const persistRes = await saveModelResponseAction({
         turnId,
         modelId,
@@ -276,7 +254,7 @@ export function ArenaScreen({
       console.error(`[arena] stream error for ${modelId}:`, error);
       updateResponseState(turnId, modelId, {
         status: "FAILED",
-        text: "Model failed to answer.",
+        text: "Model encountered an error answering this prompt.",
       });
     }
   };
@@ -284,6 +262,7 @@ export function ArenaScreen({
   const handleSendPrompt = async (promptText: string) => {
     if (isSubmitting || selectedModels.length === 0) return;
     setIsSubmitting(true);
+    setErrorMessage(null);
 
     const res = await startTurnAction({
       threadId: activeThreadId,
@@ -292,7 +271,9 @@ export function ArenaScreen({
     });
 
     if (!res.success || !res.turnId || !res.threadId) {
-      alert(res.error || "Failed to start turn. Make sure you are signed in.");
+      setErrorMessage(
+        res.error || "Could not start turn. Please sign in to create a thread."
+      );
       setIsSubmitting(false);
       return;
     }
@@ -329,7 +310,7 @@ export function ArenaScreen({
 
     setTurns((prev) => [...prev, newTurn]);
 
-    // Dispatch parallel streams with each model's previous chat history
+    // Dispatch parallel independent streams
     selectedModels.forEach((modelId) => {
       const modelHistory: Array<{
         role: "user" | "assistant";
@@ -372,7 +353,9 @@ export function ArenaScreen({
         })
       );
     } else {
-      alert(res.error || "Failed to record vote.");
+      setErrorMessage(
+        res.error || "Failed to record your vote. Please try again."
+      );
     }
   };
 
@@ -380,15 +363,36 @@ export function ArenaScreen({
     <div className="bg-background flex h-full flex-1 flex-col overflow-hidden">
       <TopBar
         threadTitle={
-          activeThreadId ? `Thread ${activeThreadId.slice(0, 6)}` : "New Arena"
+          activeThreadId
+            ? `Thread ${activeThreadId.slice(0, 6)}`
+            : "Arena Battle"
         }
         threadId={activeThreadId}
         models={winPills.length > 0 ? winPills : undefined}
       />
 
+      {/* In-app Error Banner */}
+      {errorMessage && (
+        <div className="border-destructive/30 bg-destructive/10 text-destructive animate-enter mx-4 mt-3 flex items-center justify-between rounded-lg border px-4 py-2.5 text-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="cursor-pointer rounded p-0.5 hover:opacity-70"
+            aria-label="Dismiss error"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       <ArenaGrid
         turnItems={turnFeedItems}
         onVote={isOwner ? handleVote : undefined}
+        onSelectSuggestion={(suggestion) => setActiveInputPrompt(suggestion)}
       />
 
       {isOwner ? (
@@ -397,6 +401,8 @@ export function ArenaScreen({
           selectedModelIds={selectedModels}
           onSelectionChange={(ids) => setSelectedModels(ids)}
           onSend={handleSendPrompt}
+          initialPromptValue={activeInputPrompt}
+          isSubmitting={isSubmitting}
         />
       ) : (
         /* Public Guest Read-Only Banner */

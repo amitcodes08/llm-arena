@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { Show, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { Share2, Check } from "lucide-react";
+import { Share2, Check, Menu } from "lucide-react";
 import posthog from "posthog-js";
+import { useShell } from "@/features/shell/app-shell";
+import { ThemeToggle } from "@/features/theme/theme-toggle";
 
 interface TopBarProps {
   threadTitle?: string;
@@ -17,15 +19,12 @@ interface TopBarProps {
 }
 
 export function TopBar({
-  threadTitle = "Thread 1",
+  threadTitle = "Arena Battle",
   threadId,
-  models = [
-    { id: "1", shortName: "Gemma 4", wins: 0, total: 2 },
-    { id: "2", shortName: "GPT-OSS", wins: 0, total: 2 },
-    { id: "3", shortName: "Nemotron", wins: 1, total: 2 },
-  ],
+  models = [],
 }: Readonly<TopBarProps>) {
   const [copied, setCopied] = useState(false);
+  const { toggleMobile } = useShell();
 
   const handleShare = async () => {
     if (typeof window !== "undefined") {
@@ -41,56 +40,74 @@ export function TopBar({
   };
 
   return (
-    <header className="border-border bg-card/80 sticky top-0 z-10 flex h-14 items-center justify-between border-b px-6 backdrop-blur-sm">
-      {/* Breadcrumb */}
-      <div className="text-muted-foreground flex items-center gap-2 text-sm">
-        <span className="text-foreground font-medium">Arena</span>
-        <span className="text-muted-foreground/60">/</span>
-        <span className="text-foreground font-semibold tracking-tight">
-          {threadTitle}
-        </span>
+    <header className="border-border bg-card/80 sticky top-0 z-10 flex h-14 items-center justify-between border-b px-4 backdrop-blur-sm sm:px-6">
+      {/* Left: Mobile Drawer Trigger + Breadcrumb */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleMobile}
+          aria-label="Open sidebar navigation"
+          className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5 transition-colors md:hidden"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+
+        <div className="text-muted-foreground flex items-center gap-2 text-sm">
+          <span className="text-foreground hidden font-medium sm:inline">
+            Arena
+          </span>
+          <span className="text-muted-foreground/60 hidden sm:inline">/</span>
+          <span className="text-foreground max-w-[140px] truncate font-semibold tracking-tight sm:max-w-[240px]">
+            {threadTitle}
+          </span>
+        </div>
       </div>
 
-      {/* Model Win-Rate Pills & Actions */}
-      <div className="flex items-center gap-3">
+      {/* Right: Model Win-Rate Pills, Theme Toggle, Share & Auth */}
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Model win pills */}
-        <div className="hidden items-center gap-2 sm:flex">
-          {models.map((model) => (
-            <div
-              key={model.id}
-              className="border-border bg-muted/60 hover:border-input flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs transition-colors"
-              title={`${model.shortName}: ${model.wins}/${model.total} wins in this thread`}
-            >
-              <span className="text-foreground font-bold">
-                {model.shortName[0]}
-              </span>
-              <span className="text-muted-foreground font-medium">
-                {model.wins}/{model.total}
-              </span>
-            </div>
-          ))}
-        </div>
+        {models.length > 0 && (
+          <div className="hidden items-center gap-1.5 lg:flex">
+            {models.map((model) => (
+              <div
+                key={model.id}
+                className="border-border bg-muted/60 hover:border-input flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-mono text-xs transition-colors"
+                title={`${model.shortName}: ${model.wins}/${model.total} wins in this thread`}
+              >
+                <span className="text-foreground font-bold">
+                  {model.shortName[0]}
+                </span>
+                <span className="text-muted-foreground text-[11px] font-medium">
+                  {model.wins}/{model.total}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Share Button (when viewing a thread) */}
         {threadId && (
           <button
             onClick={handleShare}
-            className="surface hover:bg-muted text-foreground flex items-center gap-1.5 px-3 py-1 text-xs font-semibold transition-colors"
+            className="surface hover:bg-muted text-foreground flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold transition-colors"
             title="Copy shareable link"
           >
             {copied ? (
               <>
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-emerald-500">Copied!</span>
+                <Check className="text-foreground h-3.5 w-3.5" />
+                <span className="text-foreground">Copied!</span>
               </>
             ) : (
               <>
                 <Share2 className="h-3.5 w-3.5" />
-                <span>Share</span>
+                <span className="hidden sm:inline">Share</span>
               </>
             )}
           </button>
         )}
+
+        {/* Quick Theme Toggle */}
+        <ThemeToggle className="h-8 w-8" />
 
         {/* Auth Buttons */}
         <div className="border-border flex items-center gap-2 border-l pl-2">
@@ -98,14 +115,14 @@ export function TopBar({
             <UserButton />
           </Show>
           <Show when="signed-out">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <SignInButton mode="modal">
-                <button className="text-foreground hover:text-primary text-xs font-medium transition-colors">
+                <button className="text-foreground hover:text-primary px-2 py-1 text-xs font-medium transition-colors">
                   Sign In
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <button className="btn-accent px-3 py-1 text-xs font-semibold">
+                <button className="btn-accent px-2.5 py-1 text-xs font-semibold">
                   Sign Up
                 </button>
               </SignUpButton>
