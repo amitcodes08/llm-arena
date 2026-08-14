@@ -42,8 +42,8 @@ export function InstrumentStrip({
           </strong>
         </span>
       </div>
-      <div className="font-medium text-emerald-600 dark:text-emerald-400">
-        ${(metrics.costUsd ?? 0).toFixed(4)}
+      <div className="text-muted-foreground text-[11px] font-medium">
+        Free Tier
       </div>
     </div>
   );

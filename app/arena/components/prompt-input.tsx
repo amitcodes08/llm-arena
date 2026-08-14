@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ArrowUp, X } from "lucide-react";
 import { CatalogModel } from "@/infrastructure/fetch-model-catalog";
 import { ModelPickerPopover } from "@/features/models/model-picker-popover";
@@ -10,6 +10,8 @@ interface PromptInputProps {
   readonly catalog?: CatalogModel[] | null;
   readonly selectedModelIds?: string[];
   readonly onSelectionChange?: (ids: string[]) => void;
+  readonly initialPromptValue?: string;
+  readonly isSubmitting?: boolean;
 }
 
 export function PromptInput({
@@ -17,13 +19,23 @@ export function PromptInput({
   catalog,
   selectedModelIds = [],
   onSelectionChange,
+  initialPromptValue = "",
+  isSubmitting = false,
 }: Readonly<PromptInputProps>) {
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(initialPromptValue);
+  const [prevInitialPrompt, setPrevInitialPrompt] =
+    useState(initialPromptValue);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  if (initialPromptValue !== prevInitialPrompt) {
+    setPrevInitialPrompt(initialPromptValue);
+    setPrompt(initialPromptValue);
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (prompt.trim()) {
-      onSend?.(prompt);
+    if (prompt.trim() && !isSubmitting) {
+      onSend?.(prompt.trim());
       setPrompt("");
     }
   };
@@ -42,8 +54,11 @@ export function PromptInput({
   };
 
   return (
-    <div className="border-border bg-card/80 sticky bottom-0 z-10 border-t p-4 backdrop-blur-sm">
-      <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-3">
+    <div className="border-border bg-card/80 sticky bottom-0 z-10 border-t p-3 backdrop-blur-sm sm:p-4">
+      <form
+        onSubmit={handleSubmit}
+        className="mx-auto max-w-4xl space-y-2.5 sm:space-y-3"
+      >
         {/* Selected Model Chips */}
         {selectedModelIds.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 px-1">
@@ -62,8 +77,9 @@ export function PromptInput({
                     <button
                       type="button"
                       onClick={() => removeChip(id)}
-                      className="text-muted-foreground hover:text-foreground rounded p-0.5"
+                      className="text-muted-foreground hover:text-foreground cursor-pointer rounded p-0.5"
                       title="Remove model"
+                      aria-label={`Remove ${name}`}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -75,18 +91,20 @@ export function PromptInput({
         )}
 
         {/* Main Textarea Container */}
-        <div className="border-input bg-background focus-within:border-primary relative rounded-xl border p-4 shadow-xs transition-all">
+        <div className="border-input bg-background focus-within:border-primary relative rounded-xl border p-3 shadow-xs transition-all sm:p-4">
           <textarea
+            ref={textareaRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Anything. Enter to send, Shift + Enter for a new line"
+            disabled={isSubmitting}
+            placeholder="Ask anything to benchmark side by side. Enter to send, Shift + Enter for a new line"
             rows={2}
             className="text-foreground placeholder-muted-foreground w-full resize-none bg-transparent text-sm outline-none"
           />
 
           {/* Action Bar inside textarea */}
-          <div className="border-border mt-2 flex items-center justify-between border-t pt-3">
+          <div className="border-border mt-2 flex items-center justify-between border-t pt-2.5 sm:pt-3">
             <div className="flex items-center gap-2.5">
               {/* + Add Model Popover */}
               <ModelPickerPopover
@@ -102,9 +120,11 @@ export function PromptInput({
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={!prompt.trim()}
+              disabled={
+                !prompt.trim() || isSubmitting || selectedModelIds.length === 0
+              }
               aria-label="Send prompt"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 flex h-9 w-9 items-center justify-center rounded-lg text-base font-bold shadow-xs transition-all disabled:cursor-not-allowed disabled:opacity-40"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-base font-bold shadow-xs transition-all disabled:cursor-not-allowed disabled:opacity-30 sm:h-9 sm:w-9"
             >
               <ArrowUp className="h-4 w-4 stroke-[2.5]" />
             </button>
